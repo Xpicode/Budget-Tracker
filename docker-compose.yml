@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: budget
+      POSTGRES_DB: budget
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}   # read from .env
+    ports:
+      - "5433:5432"   # host 5433 -> container 5432 (5432 is taken by a local Postgres)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

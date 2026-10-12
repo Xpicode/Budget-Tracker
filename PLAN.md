@@ -52,7 +52,7 @@ budget-tracker/
       sync.js             # sync service
       money.js  dates.js
       pages/  components/
-    vite.config.js        # /api proxy to :3000 + PWA plugin
+    vite.config.js        # /api proxy to :4000 + PWA plugin
 ```
 
 Same-origin design: in dev, Vite proxies `/api` to Express; in production, Express serves the built React app. No CORS package needed.
@@ -67,7 +67,7 @@ Same-origin design: in dev, Vite proxies `/api` to Express; in production, Expre
 4. Client: `npm create vite@latest client -- --template react`, install `react-router-dom dexie dexie-react-hooks recharts uuid`, dev: `vite-plugin-pwa vitest`. Add the `/api` proxy in `vite.config.js`.
 5. Git repo with `.gitignore` covering `node_modules`, `.env`, `dist`.
 
-**Done when:** `docker compose up -d` runs Postgres, `http://localhost:3000/api/health` returns `{ ok: true }`, and the Vite page loads at `http://localhost:5173`.
+**Done when:** `docker compose up -d` runs Postgres, `http://localhost:4000/api/health` returns `{ ok: true }`, and the Vite page loads at `http://localhost:5173`.
 
 ## Phase 1 — Database schema
 
@@ -303,7 +303,7 @@ Manual checklist:
 **Goal:** the app runs on your server over HTTPS and is installed on your phone and PC.
 
 1. Server `Dockerfile`: build the client, copy `client/dist` into the server image, and serve it with `express.static` plus a fallback to `index.html`.
-2. `docker-compose.yml`: `db` (Postgres + volume) and `app` (Express on 3000). Secrets come from `.env` on the server, never from Git.
+2. `docker-compose.yml`: `db` (Postgres + volume) and `app` (Express on 4000). Secrets come from `.env` on the server, never from Git.
 3. Deploy to a container or VM on your Proxmox server.
 4. HTTPS (required for installing on a phone): Caddy in front with a domain, or a Cloudflare Tunnel if the server isn't reachable from the internet.
 5. Set the cookie's `secure: true` in production.

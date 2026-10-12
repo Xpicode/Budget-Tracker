@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     // Send /api calls to Express, so the browser sees one origin (no CORS needed)
     proxy: {
-      '/api': 'http://localhost:3000',
+      '/api': 'http://localhost:4000',
     },
   },
 })

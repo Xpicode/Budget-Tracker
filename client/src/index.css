@@ -39,7 +39,7 @@ nav a {
   place-items: center;
   color: var(--muted);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 11px;
 }
 nav a.active { color: var(--accent); font-weight: 600; }
 
@@ -55,7 +55,7 @@ nav a.active { color: var(--accent); font-weight: 600; }
     border-top: 0;
     border-right: 1px solid var(--line);
   }
-  nav a { flex: 0 0 auto; padding: 12px 20px; justify-items: start; }
+  nav a { flex: 0 0 auto; padding: 12px 20px; justify-items: start; font-size: 14px; }
   nav .sync { flex: 0 0 auto; margin-top: auto; padding: 16px 20px; justify-content: flex-start; }
   nav .sync span { display: inline; }
   main { padding-bottom: 96px; }
@@ -238,3 +238,20 @@ nav a.active { color: var(--accent); font-weight: 600; }
 .card > button { padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
 .link { background: none !important; border: 0 !important; color: var(--accent); }
 .hint { color: var(--muted); font-size: 13px; }
+
+/* Dashboard */
+.totals.four { grid-template-columns: repeat(2, 1fr); }
+.card.chart { margin-bottom: 16px; padding: 16px; }
+.card.chart h2 { font-size: 14px; color: var(--muted); font-weight: 600; }
+.card.chart .empty { margin: 24px 0; }
+.recharts-legend-item-text { color: var(--text) !important; font-size: 13px; }
+.recharts-default-tooltip { border-radius: 8px !important; border-color: var(--line) !important; }
+
+/* Budgets: meter with status colours (label text carries the status too) */
+.row.budget .row-main { flex: 1; gap: 6px; }
+.meter { display: block; height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; }
+.meter-fill { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.meter-fill.warn { background: #f59e0b; }
+.meter-fill.over { background: var(--expense); }
+.status.warn { color: #b45309; }
+.status.over { color: var(--expense); }

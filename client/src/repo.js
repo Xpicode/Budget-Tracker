@@ -42,6 +42,10 @@ const seedRow = (table, name, fields) => ({
   dirty: 1,
 });
 
+// One budget row per category + month: a fixed id means two devices setting the same
+// budget offline produce the same row, and the newer limit wins instead of duplicating.
+export const budgetId = (category_id, month) => uuidv5(`budget:${category_id}:${month}`, SEED_NS);
+
 // First run only. Runs inside a transaction so two overlapping calls (React StrictMode) cannot both seed.
 export const seedDefaults = () =>
   db.transaction('rw', db.accounts, db.categories, async () => {

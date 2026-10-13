@@ -27,3 +27,40 @@ export function balances(accounts, txns) {
   }
   return out;
 }
+
+// Expenses per category, biggest first: [{ category_id, cents }].
+export function spendingByCategory(txns) {
+  const sums = {};
+  for (const t of txns) {
+    if (t.type === 'expense') sums[t.category_id] = (sums[t.category_id] ?? 0) + t.amount_cents;
+  }
+  return Object.entries(sums)
+    .map(([category_id, cents]) => ({ category_id, cents }))
+    .sort((a, b) => b.cents - a.cents);
+}
+
+// Expense total for each month in `months` (array of 'YYYY-MM'), in the given order.
+export function monthlyExpenses(txns, months) {
+  const sums = Object.fromEntries(months.map((m) => [m, 0]));
+  for (const t of txns) {
+    const m = t.txn_date.slice(0, 7);
+    if (t.type === 'expense' && m in sums) sums[m] += t.amount_cents;
+  }
+  return months.map((month) => ({ month, cents: sums[month] }));
+}
+
+// Spent vs limit for each budget row. level: ok (< 80%), warn (80–100%), over (> 100%).
+export function budgetProgress(budgets, txns) {
+  return budgets.map((b) => {
+    let spent = 0;
+    for (const t of txns) {
+      if (t.type === 'expense' && t.category_id === b.category_id && t.txn_date.startsWith(b.month)) {
+        spent += t.amount_cents;
+      }
+    }
+    // Compare in integer centavos so ₱1,000.01 on a ₱1,000 limit is "over", not a rounded 100%.
+    const level = spent > b.limit_cents ? 'over' : spent * 100 >= b.limit_cents * 80 ? 'warn' : 'ok';
+    const pct = Math.round((spent / b.limit_cents) * 100);
+    return { ...b, spent, pct, level };
+  });
+}

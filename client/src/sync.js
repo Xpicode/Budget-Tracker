@@ -25,7 +25,7 @@ async function push(table) {
   for (;;) {
     const batch = await db[table].where('dirty').equals(1).limit(BATCH).toArray();
     if (batch.length === 0) return;
-    await api('/api/sync/push', { method: 'POST', body: { table, rows: batch.map(({ dirty: _, ...row }) => row) } });
+    await api('/api/sync/push', { method: 'POST', body: { table, rows: batch.map((row) => ({ ...row, dirty: undefined })) } });
     // Clear dirty only where updated_at is unchanged, so an edit made during the request stays dirty.
     await db.transaction('rw', db[table], async () => {
       for (const row of batch) {

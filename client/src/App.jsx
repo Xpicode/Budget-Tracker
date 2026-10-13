@@ -4,6 +4,7 @@ import { seedDefaults } from './repo';
 import Transactions from './pages/Transactions';
 import Accounts from './pages/Accounts';
 import Categories from './pages/Categories';
+import UpdateToast from './components/UpdateToast';
 
 export default function App() {
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/categories" element={<Categories />} />
           </Routes>
         </main>
+        <UpdateToast />
       </div>
     </BrowserRouter>
   );

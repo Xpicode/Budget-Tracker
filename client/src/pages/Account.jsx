@@ -5,6 +5,7 @@ import { db } from '../db';
 import { api } from '../api';
 import { sync, dirtyCount } from '../sync';
 
+// The account section of the Settings page: log in / create account, or sync now / log out.
 export default function Account() {
   const navigate = useNavigate();
   const user = useLiveQuery(() => db.meta.get('user'))?.value;
@@ -50,47 +51,41 @@ export default function Account() {
 
   if (user) {
     return (
-      <>
-        <header className="month-bar"><h1>Account</h1></header>
-        <section className="card">
-          <p>Logged in as <strong>{user.email}</strong></p>
-          {error && <p className="error">{error}</p>}
-          <div className="actions">
-            <button type="button" onClick={() => sync()}>Sync now</button>
-            <span className="spacer" />
-            <button type="button" className="danger" onClick={logout}>Log out</button>
-          </div>
-        </section>
-      </>
+      <section className="card">
+        <p>Logged in as <strong>{user.email}</strong></p>
+        {error && <p className="error">{error}</p>}
+        <div className="actions">
+          <button type="button" onClick={() => sync()}>Sync now</button>
+          <span className="spacer" />
+          <button type="button" className="danger" onClick={logout}>Log out</button>
+        </div>
+      </section>
     );
   }
 
   const isLogin = mode === 'login';
   return (
-    <>
-      <header className="month-bar"><h1>{isLogin ? 'Log in' : 'Create account'}</h1></header>
-      <form className="card" onSubmit={submit}>
-        <label>
-          Email
-          <input type="email" name="email" required autoComplete="email" />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            name="password"
-            required
-            minLength={8}
-            autoComplete={isLogin ? 'current-password' : 'new-password'}
-          />
-        </label>
-        {error && <p className="error">{error}</p>}
-        <button type="submit" className="primary" disabled={busy}>{isLogin ? 'Log in' : 'Create account'}</button>
-        <button type="button" className="link" onClick={() => { setMode(isLogin ? 'register' : 'login'); setError(''); }}>
-          {isLogin ? 'No account yet? Create one' : 'Have an account? Log in'}
-        </button>
-        <p className="hint">Your data stays on this device. Logging in backs it up and syncs it to other devices.</p>
-      </form>
-    </>
+    <form className="card" onSubmit={submit}>
+      <label>
+        Email
+        <input type="email" name="email" required autoComplete="email" />
+      </label>
+      <label>
+        Password
+        <input
+          type="password"
+          name="password"
+          required
+          minLength={8}
+          autoComplete={isLogin ? 'current-password' : 'new-password'}
+        />
+      </label>
+      {error && <p className="error">{error}</p>}
+      <button type="submit" className="primary" disabled={busy}>{isLogin ? 'Log in' : 'Create account'}</button>
+      <button type="button" className="link" onClick={() => { setMode(isLogin ? 'register' : 'login'); setError(''); }}>
+        {isLogin ? 'No account yet? Create one' : 'Have an account? Log in'}
+      </button>
+      <p className="hint">Your data stays on this device. Logging in backs it up and syncs it to other devices.</p>
+    </form>
   );
 }

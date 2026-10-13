@@ -4,22 +4,27 @@ import { db } from '../db';
 import { save, softDelete } from '../repo';
 import { formatPeso } from '../money';
 import { totals } from '../reports';
-import { today, shiftMonth, formatDay, formatMonth } from '../dates';
+import { useSetting } from '../settings';
+import { today, shiftMonth, period, currentMonth, formatDay, formatMonth } from '../dates';
 import TransactionForm from '../components/TransactionForm';
 
 export default function Transactions() {
-  const [month, setMonth] = useState(today().slice(0, 7));
+  const startDay = useSetting('budget_start', 1);
+  const [offset, setOffset] = useState(0);      // months away from the current budget period
   const [editing, setEditing] = useState(null); // null = form closed, {} = new, row = edit
   const [undo, setUndo] = useState(null);       // last deleted row, shown in the toast
+
+  const month = shiftMonth(currentMonth(today(), startDay), offset);
+  const { from, to } = period(month, startDay);
 
   // useLiveQuery re-runs the query whenever the table changes, so the list refreshes itself.
   const rows = useLiveQuery(async () => {
     const list = await db.transactions
-      .where('txn_date').between(`${month}-01`, `${month}-31`, true, true)
+      .where('txn_date').between(from, to, true, false)
       .filter((t) => !t.deleted_at)
       .toArray();
     return list.sort((a, b) => b.txn_date.localeCompare(a.txn_date) || b.created_at.localeCompare(a.created_at));
-  }, [month]) ?? [];
+  }, [from, to]) ?? [];
   // All categories/accounts for showing names (a deleted one may still be on old rows);
   // only live ones are offered in the form.
   const categories = useLiveQuery(() => db.categories.toArray()) ?? [];
@@ -50,9 +55,9 @@ export default function Transactions() {
   return (
     <>
       <header className="month-bar">
-        <button type="button" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">‹</button>
+        <button type="button" onClick={() => setOffset(offset - 1)} aria-label="Previous month">‹</button>
         <h1>{formatMonth(month)}</h1>
-        <button type="button" onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month">›</button>
+        <button type="button" onClick={() => setOffset(offset + 1)} aria-label="Next month">›</button>
       </header>
 
       <section className="totals">

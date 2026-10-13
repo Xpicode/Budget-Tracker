@@ -4,21 +4,26 @@ import { db } from '../db';
 import { save, softDelete, budgetId } from '../repo';
 import { formatPeso, toCents, centsToInput } from '../money';
 import { budgetProgress } from '../reports';
-import { today, shiftMonth, formatMonth } from '../dates';
+import { useSetting } from '../settings';
+import { today, shiftMonth, period, currentMonth, formatMonth } from '../dates';
 import Sheet from '../components/Sheet';
 
 const STATUS = { ok: '', warn: 'Near limit', over: 'Over budget' };
 
 export default function Budgets() {
-  const [month, setMonth] = useState(today().slice(0, 7));
+  const startDay = useSetting('budget_start', 1);
+  const [offset, setOffset] = useState(0);
   const [editing, setEditing] = useState(null); // { category, budget } while the sheet is open
   const [error, setError] = useState('');
+
+  const month = shiftMonth(currentMonth(today(), startDay), offset);
+  const { from, to } = period(month, startDay);
 
   const categories = useLiveQuery(() => db.categories.filter((c) => !c.deleted_at && c.type === 'expense').toArray()) ?? [];
   const budgets = useLiveQuery(() => db.budgets.filter((b) => !b.deleted_at && b.month === month).toArray(), [month]) ?? [];
   const txns = useLiveQuery(
-    () => db.transactions.where('txn_date').between(`${month}-01`, `${month}-31`, true, true).filter((t) => !t.deleted_at).toArray(),
-    [month],
+    () => db.transactions.where('txn_date').between(from, to, true, false).filter((t) => !t.deleted_at).toArray(),
+    [from, to],
   ) ?? [];
 
   const progress = Object.fromEntries(budgetProgress(budgets, txns).map((p) => [p.category_id, p]));
@@ -50,9 +55,9 @@ export default function Budgets() {
   return (
     <>
       <header className="month-bar">
-        <button type="button" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">‹</button>
+        <button type="button" onClick={() => setOffset(offset - 1)} aria-label="Previous month">‹</button>
         <h1>{formatMonth(month)}</h1>
-        <button type="button" onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month">›</button>
+        <button type="button" onClick={() => setOffset(offset + 1)} aria-label="Next month">›</button>
       </header>
 
       <section className="group">

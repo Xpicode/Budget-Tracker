@@ -13,7 +13,7 @@ const LABEL = {
 export default function SyncStatus() {
   const status = useSyncExternalStore(subscribe, getStatus);
   if (status === 'signed-out') {
-    return <Link to="/account" className={`sync ${status}`}><span>{LABEL[status]}</span></Link>;
+    return <Link to="/settings" className={`sync ${status}`}><span>{LABEL[status]}</span></Link>;
   }
   return (
     <button type="button" className={`sync ${status}`} onClick={() => sync()} title="Sync now">

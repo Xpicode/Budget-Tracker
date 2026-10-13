@@ -43,6 +43,9 @@ nav a {
 }
 nav a.active { color: var(--accent); font-weight: 600; }
 
+/* Phone nav shows the four main pages; the rest live in the sidebar and under Settings → Manage */
+nav a.secondary { display: none; }
+
 @media (min-width: 600px) {
   .shell { display: grid; grid-template-columns: 200px 1fr; }
   nav {
@@ -58,6 +61,7 @@ nav a.active { color: var(--accent); font-weight: 600; }
   nav a { flex: 0 0 auto; padding: 12px 20px; justify-items: start; font-size: 14px; }
   nav .sync { flex: 0 0 auto; margin-top: auto; padding: 16px 20px; justify-content: flex-start; }
   nav .sync span { display: inline; }
+  nav a.secondary { display: grid; }
   main { padding-bottom: 96px; }
   .fab, .toast { bottom: 24px; }
 }
@@ -255,3 +259,28 @@ nav a.active { color: var(--accent); font-weight: 600; }
 .meter-fill.over { background: var(--expense); }
 .status.warn { color: #b45309; }
 .status.over { color: var(--expense); }
+
+/* Theme: dark when chosen, or when the device prefers it and nothing was chosen */
+:root { color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115; --card: #1a1d23; --text: #e5e7eb; --muted: #9ca3af; --line: #2a2f3a;
+    --accent: #3b82f6; --income: #4ade80; --expense: #f87171;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1115; --card: #1a1d23; --text: #e5e7eb; --muted: #9ca3af; --line: #2a2f3a;
+  --accent: #3b82f6; --income: #4ade80; --expense: #f87171;
+  color-scheme: dark;
+}
+.sheet { background: var(--card); color: var(--text); }
+.recharts-default-tooltip { background: var(--card) !important; color: var(--text) !important; }
+.recharts-tooltip-item { color: var(--text) !important; }
+
+
+/* Settings */
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 20px 4px 6px; }
+.card select { padding: 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--card); }
+.range { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+a.row { text-decoration: none; color: var(--text); display: flex; }

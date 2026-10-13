@@ -39,24 +39,21 @@ export function spendingByCategory(txns) {
     .sort((a, b) => b.cents - a.cents);
 }
 
-// Expense total for each month in `months` (array of 'YYYY-MM'), in the given order.
-export function monthlyExpenses(txns, months) {
-  const sums = Object.fromEntries(months.map((m) => [m, 0]));
-  for (const t of txns) {
-    const m = t.txn_date.slice(0, 7);
-    if (t.type === 'expense' && m in sums) sums[m] += t.amount_cents;
-  }
-  return months.map((month) => ({ month, cents: sums[month] }));
+// Expense total per period: periods = [{ month, from, to }] with from inclusive, to exclusive.
+export function monthlyExpenses(txns, periods) {
+  return periods.map(({ month, from, to }) => ({
+    month,
+    cents: txns.reduce((s, t) => (t.type === 'expense' && t.txn_date >= from && t.txn_date < to ? s + t.amount_cents : s), 0),
+  }));
 }
 
-// Spent vs limit for each budget row. level: ok (< 80%), warn (80–100%), over (> 100%).
+// Spent vs limit for each budget row, over the given period's rows (already filtered by date).
+// level: ok (< 80%), warn (80–100%), over (> 100%).
 export function budgetProgress(budgets, txns) {
   return budgets.map((b) => {
     let spent = 0;
     for (const t of txns) {
-      if (t.type === 'expense' && t.category_id === b.category_id && t.txn_date.startsWith(b.month)) {
-        spent += t.amount_cents;
-      }
+      if (t.type === 'expense' && t.category_id === b.category_id) spent += t.amount_cents;
     }
     // Compare in integer centavos so ₱1,000.01 on a ₱1,000 limit is "over", not a rounded 100%.
     const level = spent > b.limit_cents ? 'over' : spent * 100 >= b.limit_cents * 80 ? 'warn' : 'ok';

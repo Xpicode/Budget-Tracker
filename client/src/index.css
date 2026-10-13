@@ -56,6 +56,8 @@ nav a.active { color: var(--accent); font-weight: 600; }
     border-right: 1px solid var(--line);
   }
   nav a { flex: 0 0 auto; padding: 12px 20px; justify-items: start; }
+  nav .sync { flex: 0 0 auto; margin-top: auto; padding: 16px 20px; justify-content: flex-start; }
+  nav .sync span { display: inline; }
   main { padding-bottom: 96px; }
   .fab, .toast { bottom: 24px; }
 }
@@ -164,8 +166,8 @@ nav a.active { color: var(--accent); font-weight: 600; }
 .sheet::backdrop { background: rgba(0, 0, 0, 0.4); }
 .sheet form { display: grid; gap: 12px; }
 .sheet h2 { font-size: 18px; }
-.sheet label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
-.sheet input, .sheet select {
+.sheet label, .card label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.sheet input, .sheet select, .card input, .card select {
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -190,8 +192,8 @@ nav a.active { color: var(--accent); font-weight: 600; }
   border-radius: 8px;
   background: var(--card);
 }
-.actions .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.actions .danger { color: var(--expense); }
+.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.danger { color: var(--expense); }
 
 /* Accounts / categories */
 .totals.one { grid-template-columns: 1fr; }
@@ -202,3 +204,37 @@ nav a.active { color: var(--accent); font-weight: 600; }
   margin-right: 8px;
   vertical-align: -1px;
 }
+
+/* Sync status dot (label hidden on phones, shown in the sidebar) */
+.sync {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  text-decoration: none;
+}
+.sync::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: #9ca3af; }
+.sync.synced::before { background: var(--income); }
+.sync.syncing::before { background: var(--accent); }
+.sync.error::before { background: var(--expense); }
+.sync.signed-out::before { background: #f59e0b; }
+.sync span { display: none; }
+
+/* Account page */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+}
+.card p { margin: 0; }
+.card > button { padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+.link { background: none !important; border: 0 !important; color: var(--accent); }
+.hint { color: var(--muted); font-size: 13px; }

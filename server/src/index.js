@@ -2,6 +2,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import { z } from 'zod';
 import { auth } from './auth.js';
+import { sync } from './sync.js';
 
 const app = express();
 app.use(express.json());
@@ -11,6 +12,7 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
 app.use('/api/auth', auth);
+app.use('/api/sync', sync);
 
 // Central error handler. Express 5 sends rejected promises from async routes here automatically.
 app.use((err, req, res, next) => {

@@ -314,10 +314,10 @@ Manual checklist:
 
 ## Progress checklist
 
-- [ ] Phase 0 — Setup
-- [ ] Phase 1 — Database schema
-- [ ] Phase 2 — Auth API
-- [ ] Phase 3 — Local database + transactions
+- [x] Phase 0 — Setup
+- [x] Phase 1 — Database schema
+- [x] Phase 2 — Auth API
+- [x] Phase 3 — Local database + transactions
 - [ ] Phase 4 — Accounts, categories, transfers
 - [ ] Phase 5 — PWA install + offline
 - [ ] Phase 6 — Sync engine

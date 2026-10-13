@@ -98,8 +98,8 @@ nav a.active { color: var(--accent); font-weight: 600; }
 .expense { color: var(--expense); }
 .empty { color: var(--muted); text-align: center; margin-top: 48px; }
 
-.day { margin-bottom: 16px; }
-.day h2 {
+.group { margin-bottom: 16px; }
+.group h2 {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -118,9 +118,9 @@ nav a.active { color: var(--accent); font-weight: 600; }
   border-top: 0;
   text-align: left;
 }
-.day .row:first-of-type { border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; }
-.day .row:last-of-type { border-radius: 0 0 12px 12px; }
-.day .row:first-of-type:last-of-type { border-radius: 12px; }
+.group .row:first-of-type { border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; }
+.group .row:last-of-type { border-radius: 0 0 12px 12px; }
+.group .row:first-of-type:last-of-type { border-radius: 12px; }
 .row-main { display: grid; gap: 2px; min-width: 0; }
 .row-main small { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row > span:last-child { font-weight: 600; white-space: nowrap; }
@@ -172,7 +172,7 @@ nav a.active { color: var(--accent); font-weight: 600; }
   color: var(--text);
   background: var(--card);
 }
-.type-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.type-toggle { display: grid; grid-auto-flow: column; gap: 8px; }
 .type-toggle button {
   padding: 8px;
   border: 1px solid var(--line);
@@ -192,3 +192,13 @@ nav a.active { color: var(--accent); font-weight: 600; }
 }
 .actions .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .actions .danger { color: var(--expense); }
+
+/* Accounts / categories */
+.totals.one { grid-template-columns: 1fr; }
+.swatch {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: -1px;
+}

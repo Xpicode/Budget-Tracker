@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { save, softDelete } from '../repo';
 import { formatPeso } from '../money';
+import { totals } from '../reports';
 import { today, shiftMonth, formatDay, formatMonth } from '../dates';
 import TransactionForm from '../components/TransactionForm';
 
@@ -19,12 +20,12 @@ export default function Transactions() {
       .toArray();
     return list.sort((a, b) => b.txn_date.localeCompare(a.txn_date) || b.created_at.localeCompare(a.created_at));
   }, [month]) ?? [];
-  const categories = useLiveQuery(() => db.categories.filter((c) => !c.deleted_at).toArray()) ?? [];
-  const accounts = useLiveQuery(() => db.accounts.filter((a) => !a.deleted_at && !a.archived).toArray()) ?? [];
+  // All categories/accounts for showing names (a deleted one may still be on old rows);
+  // only live ones are offered in the form.
+  const categories = useLiveQuery(() => db.categories.toArray()) ?? [];
+  const accounts = useLiveQuery(() => db.accounts.toArray()) ?? [];
 
-  const sum = (type) => rows.filter((t) => t.type === type).reduce((s, t) => s + t.amount_cents, 0);
-  const income = sum('income');
-  const expense = sum('expense');
+  const { income, expense, net } = totals(rows);
   const byDay = Object.groupBy(rows, (t) => t.txn_date);
   const categoryName = Object.fromEntries(categories.map((c) => [c.id, c.name]));
   const accountName = Object.fromEntries(accounts.map((a) => [a.id, a.name]));
@@ -57,21 +58,27 @@ export default function Transactions() {
       <section className="totals">
         <div><span>Income</span><strong className="income">{formatPeso(income)}</strong></div>
         <div><span>Expense</span><strong className="expense">{formatPeso(expense)}</strong></div>
-        <div><span>Net</span><strong>{formatPeso(income - expense)}</strong></div>
+        <div><span>Net</span><strong>{formatPeso(net)}</strong></div>
       </section>
 
       {rows.length === 0 && <p className="empty">No transactions this month.</p>}
 
       {Object.entries(byDay).map(([day, list]) => (
-        <section key={day} className="day">
+        <section key={day} className="group">
           <h2>{formatDay(day)}</h2>
           {list.map((t) => (
             <button type="button" key={t.id} className="row" onClick={() => setEditing(t)}>
               <span className="row-main">
-                <span>{categoryName[t.category_id] ?? '—'}</span>
-                <small>{t.note || accountName[t.account_id]}</small>
+                <span>
+                  {t.type === 'transfer'
+                    ? `${accountName[t.account_id] ?? '—'} → ${accountName[t.to_account_id] ?? '—'}`
+                    : categoryName[t.category_id] ?? '—'}
+                </span>
+                <small>{t.note || (t.type === 'transfer' ? 'Transfer' : accountName[t.account_id])}</small>
               </span>
-              <span className={t.type}>{t.type === 'expense' ? '−' : '+'}{formatPeso(t.amount_cents)}</span>
+              <span className={t.type}>
+                {t.type === 'expense' ? '−' : t.type === 'income' ? '+' : ''}{formatPeso(t.amount_cents)}
+              </span>
             </button>
           ))}
         </section>
@@ -82,8 +89,8 @@ export default function Transactions() {
       {editing && (
         <TransactionForm
           initial={editing}
-          categories={categories}
-          accounts={accounts}
+          categories={categories.filter((c) => !c.deleted_at)}
+          accounts={accounts.filter((a) => !a.deleted_at && !a.archived)}
           onSubmit={submit}
           onDelete={editing.id ? () => remove(editing) : null}
           onClose={() => setEditing(null)}

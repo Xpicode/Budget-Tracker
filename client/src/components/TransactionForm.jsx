@@ -1,16 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { toCents } from '../money';
+import { useState } from 'react';
+import { toCents, centsToInput } from '../money';
 import { today } from '../dates';
+import Sheet from './Sheet';
+
+const TYPES = ['expense', 'income', 'transfer'];
 
 export default function TransactionForm({ initial, categories, accounts, onSubmit, onDelete, onClose }) {
-  const dialog = useRef(null);
   const [type, setType] = useState(initial.type ?? 'expense');
   const [error, setError] = useState('');
-
-  // A native <dialog> gives us the backdrop, focus trap and Esc-to-close for free.
-  useEffect(() => {
-    if (!dialog.current.open) dialog.current.showModal();
-  }, []);
+  const isTransfer = type === 'transfer';
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -20,23 +18,32 @@ export default function TransactionForm({ initial, categories, accounts, onSubmi
       setError('Enter an amount above 0 with at most 2 decimals.');
       return;
     }
+    const account_id = f.get('account_id');
+    const to_account_id = isTransfer ? f.get('to_account_id') : null;
+    if (isTransfer && to_account_id === account_id) {
+      setError('Pick two different accounts.');
+      return;
+    }
     onSubmit({
       type,
       amount_cents,
-      category_id: f.get('category_id'),
-      account_id: f.get('account_id'),
+      account_id,
+      to_account_id,
+      category_id: isTransfer ? null : f.get('category_id'),
       txn_date: f.get('txn_date'),
       note: f.get('note').trim() || null,
     });
   }
 
+  const accountOptions = accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>);
+
   return (
-    <dialog ref={dialog} className="sheet" onClose={onClose}>
+    <Sheet onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <h2>{initial.id ? 'Edit' : 'Add'} transaction</h2>
 
         <div className="type-toggle">
-          {['expense', 'income'].map((t) => (
+          {TYPES.map((t) => (
             <button type="button" key={t} className={t === type ? 'active' : ''} onClick={() => setType(t)}>
               {t}
             </button>
@@ -51,28 +58,40 @@ export default function TransactionForm({ initial, categories, accounts, onSubmi
             placeholder="0.00"
             required
             autoFocus
-            defaultValue={initial.amount_cents != null ? (initial.amount_cents / 100).toFixed(2) : ''}
+            defaultValue={initial.amount_cents != null ? centsToInput(initial.amount_cents) : ''}
           />
         </label>
 
+        {!isTransfer && (
+          <label>
+            Category
+            {/* key={type} remounts the select when the type changes, so a stale pick is cleared */}
+            <select name="category_id" key={type} required defaultValue={initial.category_id ?? ''}>
+              <option value="" disabled>Choose…</option>
+              {categories.filter((c) => c.type === type).map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
         <label>
-          Category
-          {/* key={type} remounts the select when the type changes, so a stale pick is cleared */}
-          <select name="category_id" key={type} required defaultValue={initial.category_id ?? ''}>
+          {isTransfer ? 'From' : 'Account'}
+          <select name="account_id" required defaultValue={initial.account_id ?? accounts[0]?.id ?? ''}>
             <option value="" disabled>Choose…</option>
-            {categories.filter((c) => c.type === type).map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
+            {accountOptions}
           </select>
         </label>
 
-        <label>
-          Account
-          <select name="account_id" required defaultValue={initial.account_id ?? accounts[0]?.id ?? ''}>
-            <option value="" disabled>Choose…</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-        </label>
+        {isTransfer && (
+          <label>
+            To
+            <select name="to_account_id" required defaultValue={initial.to_account_id ?? accounts[1]?.id ?? ''}>
+              <option value="" disabled>Choose…</option>
+              {accountOptions}
+            </select>
+          </label>
+        )}
 
         <label>
           Date
@@ -89,10 +108,10 @@ export default function TransactionForm({ initial, categories, accounts, onSubmi
         <div className="actions">
           {onDelete && <button type="button" className="danger" onClick={onDelete}>Delete</button>}
           <span className="spacer" />
-          <button type="button" onClick={() => dialog.current.close()}>Cancel</button>
+          <button type="button" onClick={onClose}>Cancel</button>
           <button type="submit" className="primary">Save</button>
         </div>
       </form>
-    </dialog>
+    </Sheet>
   );
 }

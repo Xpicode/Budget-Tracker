@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { db } from '../db';
 import { formatPeso } from '../money';
@@ -17,6 +17,37 @@ const MAX_SLICES = 7;
 
 const tick = { fill: 'var(--muted)', fontSize: 12 };
 const axisPeso = (cents) => `₱${Math.round(cents / 100).toLocaleString('en-PH')}`;
+
+// One spending circle: expenses by category, with the total spent in the middle.
+function Donut({ title, rows, nameOf, colorOf }) {
+  const spending = spendingByCategory(rows);
+  const total = spending.reduce((s, x) => s + x.cents, 0);
+  const slices = spending.slice(0, MAX_SLICES).map((s) => ({ name: nameOf(s.category_id), cents: s.cents, color: colorOf(s.category_id) }));
+  const rest = spending.slice(MAX_SLICES).reduce((s, x) => s + x.cents, 0);
+  if (rest > 0) slices.push({ name: 'Other', cents: rest, color: OTHER });
+
+  return (
+    <div className="donut">
+      {title && <h3>{title}</h3>}
+      {slices.length === 0 ? (
+        <p className="empty">No {title ? `${title.toLowerCase()} ` : ''}expenses yet this month.</p>
+      ) : (
+        <ResponsiveContainer width="100%" height={250}>
+          <PieChart>
+            <Pie data={slices} dataKey="cents" nameKey="name" innerRadius={58} outerRadius={88} paddingAngle={2}
+              cornerRadius={4} stroke="var(--card)" strokeWidth={2} animationDuration={700}>
+              {slices.map((s) => <Cell key={s.name} fill={s.color} />)}
+              <Label position="center" value={formatPeso(total)} className="donut-total" dy={-8} />
+              <Label position="center" value="spent" className="donut-caption" dy={12} />
+            </Pie>
+            <Tooltip formatter={(value) => formatPeso(value)} />
+            <Legend iconType="circle" iconSize={9} />
+          </PieChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const startDay = useSetting('budget_start', 1);
@@ -44,11 +75,6 @@ export default function Dashboard() {
   const colors = categoryColors(categories);
   const colorOf = (id) => colors[id] ?? OTHER;
   const nameOf = (id) => categories.find((c) => c.id === id)?.name ?? '—';
-
-  const spending = spendingByCategory(monthTxns);
-  const slices = spending.slice(0, MAX_SLICES).map((s) => ({ name: nameOf(s.category_id), cents: s.cents, color: colorOf(s.category_id) }));
-  const rest = spending.slice(MAX_SLICES).reduce((s, x) => s + x.cents, 0);
-  if (rest > 0) slices.push({ name: 'Other', cents: rest, color: OTHER });
 
   const trend = monthlyExpenses(bookTxns, periods).map((m) => ({
     ...m,
@@ -88,19 +114,14 @@ export default function Dashboard() {
 
       <section className="card chart">
         <h2>Where it went</h2>
-        {slices.length === 0 ? (
-          <p className="empty">No expenses yet this month. Add one from Transactions.</p>
+        {/* All: a circle per book side by side, so shop costs and personal spending don't mix */}
+        {book === 'all' ? (
+          <div className="donuts">
+            <Donut title="Personal" rows={monthTxns.filter((t) => inBook(t, 'personal'))} nameOf={nameOf} colorOf={colorOf} />
+            <Donut title="Business" rows={monthTxns.filter((t) => inBook(t, 'business'))} nameOf={nameOf} colorOf={colorOf} />
+          </div>
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie data={slices} dataKey="cents" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={2}
-                cornerRadius={4} stroke="var(--card)" strokeWidth={2} animationDuration={700}>
-                {slices.map((s) => <Cell key={s.name} fill={s.color} />)}
-              </Pie>
-              <Tooltip formatter={(value) => formatPeso(value)} />
-              <Legend iconType="circle" iconSize={9} />
-            </PieChart>
-          </ResponsiveContainer>
+          <Donut rows={monthTxns} nameOf={nameOf} colorOf={colorOf} />
         )}
       </section>
 

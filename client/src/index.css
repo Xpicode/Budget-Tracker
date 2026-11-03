@@ -368,6 +368,11 @@ a.row { display: flex; }
 .card.chart { margin-bottom: 16px; padding: 18px 14px 10px; }
 .card.chart h2 { padding: 0 4px; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
 .card.chart .empty { margin: 28px 0; }
+.donuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0 12px; }
+.donut h3 { margin: 14px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); text-align: center; }
+.donut .empty { margin: 32px 8px; }
+.donut-total { fill: var(--text); font-size: 15px; font-weight: 700; }
+.donut-caption { fill: var(--muted); font-size: 12px; }
 h2.section {
   margin: 24px 6px 8px;
   font-size: 12px;

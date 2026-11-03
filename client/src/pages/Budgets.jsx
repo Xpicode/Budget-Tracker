@@ -7,6 +7,7 @@ import { budgetProgress } from '../reports';
 import { useSetting } from '../settings';
 import { today, shiftMonth, period, currentMonth, formatMonth } from '../dates';
 import Sheet from '../components/Sheet';
+import Icon from '../components/Icon';
 
 const STATUS = { ok: '', warn: 'Near limit', over: 'Over budget' };
 
@@ -19,7 +20,7 @@ export default function Budgets() {
   const month = shiftMonth(currentMonth(today(), startDay), offset);
   const { from, to } = period(month, startDay);
 
-  const categories = useLiveQuery(() => db.categories.filter((c) => !c.deleted_at && c.type === 'expense').toArray()) ?? [];
+  const categories = useLiveQuery(() => db.categories.filter((c) => !c.deleted_at && c.type === 'expense').sortBy('name')) ?? [];
   const budgets = useLiveQuery(() => db.budgets.filter((b) => !b.deleted_at && b.month === month).toArray(), [month]) ?? [];
   const txns = useLiveQuery(
     () => db.transactions.where('txn_date').between(from, to, true, false).filter((t) => !t.deleted_at).toArray(),
@@ -55,9 +56,9 @@ export default function Budgets() {
   return (
     <>
       <header className="month-bar">
-        <button type="button" onClick={() => setOffset(offset - 1)} aria-label="Previous month">‹</button>
+        <button type="button" onClick={() => setOffset(offset - 1)} aria-label="Previous month"><Icon name="left" /></button>
         <h1>{formatMonth(month)}</h1>
-        <button type="button" onClick={() => setOffset(offset + 1)} aria-label="Next month">›</button>
+        <button type="button" onClick={() => setOffset(offset + 1)} aria-label="Next month"><Icon name="right" /></button>
       </header>
 
       <section className="group">

@@ -7,9 +7,9 @@ import { formatPeso } from '../money';
 import { balances, totals, spendingByCategory, monthlyExpenses } from '../reports';
 import { useSetting } from '../settings';
 import { today, shiftMonth, period, currentMonth, formatMonth } from '../dates';
+import Money from '../components/Money';
+import { categoryColors } from '../colors';
 
-// Fixed categorical order (colour-blind-safe set); a category keeps its colour as others come and go.
-const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'];
 const OTHER = '#9ca3af';
 const MAX_SLICES = 7;
 
@@ -33,10 +33,10 @@ export default function Dashboard() {
   const balance = balances(accounts, txns);
   const total = accounts.reduce((s, a) => s + balance[a.id], 0);
   const { income, expense, net } = totals(monthTxns);
+  const spentShare = income > 0 ? Math.round((expense / income) * 100) : null;
 
-  // Colour by entity: index in the name-sorted list, unless the user picked a colour.
-  const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name));
-  const colorOf = (id) => sorted.find((c) => c.id === id)?.color ?? PALETTE[sorted.findIndex((c) => c.id === id) % PALETTE.length];
+  const colors = categoryColors(categories);
+  const colorOf = (id) => colors[id] ?? OTHER;
   const nameOf = (id) => categories.find((c) => c.id === id)?.name ?? '—';
 
   const spending = spendingByCategory(monthTxns);
@@ -51,27 +51,44 @@ export default function Dashboard() {
 
   return (
     <>
-      <header className="month-bar"><h1>{formatMonth(month)}</h1></header>
+      <header className="month-bar">
+        <div>
+          <p className="eyebrow">This month</p>
+          <h1>{formatMonth(month)}</h1>
+        </div>
+      </header>
 
-      <section className="totals four">
-        <div><span>Total balance</span><strong className={total < 0 ? 'expense' : ''}>{formatPeso(total)}</strong></div>
-        <div><span>Income</span><strong className="income">{formatPeso(income)}</strong></div>
-        <div><span>Expenses</span><strong className="expense">{formatPeso(expense)}</strong></div>
-        <div><span>Net</span><strong>{formatPeso(net)}</strong></div>
+      <section className="hero">
+        <span className="hero-label">Left after spending</span>
+        <Money cents={net} animate className={`hero-amount ${net < 0 ? 'expense' : ''}`} />
+        {spentShare !== null && (
+          <div className="ratio" title={`${spentShare}% of income spent`}>
+            <span className={spentShare > 100 ? 'over' : ''} style={{ width: `${Math.min(spentShare, 100)}%` }} />
+          </div>
+        )}
+        <p className="hero-note">
+          {spentShare === null ? 'No income recorded yet this month.' : `You've spent ${spentShare}% of what came in.`}
+        </p>
+        <div className="hero-split">
+          <div><span>Income</span><Money cents={income} animate className="income" /></div>
+          <div><span>Expenses</span><Money cents={expense} animate className="expense" /></div>
+          <div><span>All accounts</span><Money cents={total} animate /></div>
+        </div>
       </section>
 
       <section className="card chart">
-        <h2>Spending by category</h2>
+        <h2>Where it went</h2>
         {slices.length === 0 ? (
-          <p className="empty">No expenses yet this month.</p>
+          <p className="empty">No expenses yet this month. Add one from Transactions.</p>
         ) : (
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
-              <Pie data={slices} dataKey="cents" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2} stroke="var(--card)" strokeWidth={2}>
+              <Pie data={slices} dataKey="cents" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={2}
+                cornerRadius={4} stroke="var(--card)" strokeWidth={2} animationDuration={700}>
                 {slices.map((s) => <Cell key={s.name} fill={s.color} />)}
               </Pie>
               <Tooltip formatter={(value) => formatPeso(value)} />
-              <Legend iconType="circle" iconSize={10} />
+              <Legend iconType="circle" iconSize={9} />
             </PieChart>
           </ResponsiveContainer>
         )}
@@ -84,8 +101,8 @@ export default function Dashboard() {
             <CartesianGrid vertical={false} stroke="var(--line)" />
             <XAxis dataKey="label" tick={tick} tickLine={false} axisLine={false} />
             <YAxis tick={tick} tickFormatter={axisPeso} tickLine={false} axisLine={false} width={64} />
-            <Tooltip formatter={(value) => [formatPeso(value), 'Expenses']} labelFormatter={(_, p) => p[0] && formatMonth(p[0].payload.month)} cursor={{ fill: 'var(--bg)' }} />
-            <Bar dataKey="cents" fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={48} />
+            <Tooltip formatter={(value) => [formatPeso(value), 'Expenses']} labelFormatter={(_, p) => p[0] && formatMonth(p[0].payload.month)} cursor={{ fill: 'var(--accent-soft)' }} />
+            <Bar dataKey="cents" fill="var(--accent)" radius={[6, 6, 0, 0]} maxBarSize={44} animationDuration={700} />
           </BarChart>
         </ResponsiveContainer>
       </section>

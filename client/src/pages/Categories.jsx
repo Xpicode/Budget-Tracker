@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { save, softDelete } from '../repo';
 import Sheet from '../components/Sheet';
+import Icon from '../components/Icon';
 
 export default function Categories() {
   const [editing, setEditing] = useState(null); // null = closed, {} = new, row = edit
@@ -46,7 +47,7 @@ export default function Categories() {
       {group('expense')}
       {group('income')}
 
-      <button type="button" className="fab" onClick={() => setEditing({})} aria-label="Add category">+</button>
+      <button type="button" className="fab" onClick={() => setEditing({})} aria-label="Add category"><Icon name="plus" size={26} /></button>
 
       {editing && (
         <Sheet onClose={() => setEditing(null)}>

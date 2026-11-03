@@ -5,6 +5,8 @@ import { save } from '../repo';
 import { formatPeso, parseCents, centsToInput } from '../money';
 import { balances } from '../reports';
 import Sheet from '../components/Sheet';
+import Money from '../components/Money';
+import Icon from '../components/Icon';
 
 export default function Accounts() {
   const [editing, setEditing] = useState(null); // null = closed, {} = new, row = edit
@@ -41,7 +43,7 @@ export default function Accounts() {
         <span>{a.name}</span>
         <small>Opening {formatPeso(a.opening_balance_cents)}</small>
       </span>
-      <span className={balance[a.id] < 0 ? 'expense' : ''}>{formatPeso(balance[a.id])}</span>
+      <Money cents={balance[a.id]} className={balance[a.id] < 0 ? 'expense' : ''} />
     </button>
   ));
 
@@ -50,7 +52,7 @@ export default function Accounts() {
       <header className="month-bar"><h1>Accounts</h1></header>
 
       <section className="totals one">
-        <div><span>Total balance</span><strong className={total < 0 ? 'expense' : ''}>{formatPeso(total)}</strong></div>
+        <div><span>Total balance</span><Money cents={total} animate className={total < 0 ? 'expense' : ''} /></div>
       </section>
 
       <section className="group">
@@ -66,7 +68,7 @@ export default function Accounts() {
         </section>
       )}
 
-      <button type="button" className="fab" onClick={() => { setError(''); setEditing({}); }} aria-label="Add account">+</button>
+      <button type="button" className="fab" onClick={() => { setError(''); setEditing({}); }} aria-label="Add account"><Icon name="plus" size={26} /></button>
 
       {editing && (
         <Sheet onClose={() => setEditing(null)}>

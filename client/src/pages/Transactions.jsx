@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { save, softDelete } from '../repo';
-import { formatPeso } from '../money';
 import { totals } from '../reports';
 import { useSetting } from '../settings';
 import { today, shiftMonth, period, currentMonth, formatDay, formatMonth } from '../dates';
 import TransactionForm from '../components/TransactionForm';
+import Money from '../components/Money';
+import Icon from '../components/Icon';
+import { categoryColors } from '../colors';
 
 export default function Transactions() {
   const startDay = useSetting('budget_start', 1);
@@ -33,6 +35,7 @@ export default function Transactions() {
   const { income, expense, net } = totals(rows);
   const byDay = Object.groupBy(rows, (t) => t.txn_date);
   const categoryName = Object.fromEntries(categories.map((c) => [c.id, c.name]));
+  const categoryColor = categoryColors(categories);
   const accountName = Object.fromEntries(accounts.map((a) => [a.id, a.name]));
 
   async function submit(values) {
@@ -55,24 +58,27 @@ export default function Transactions() {
   return (
     <>
       <header className="month-bar">
-        <button type="button" onClick={() => setOffset(offset - 1)} aria-label="Previous month">‹</button>
+        <button type="button" onClick={() => setOffset(offset - 1)} aria-label="Previous month"><Icon name="left" /></button>
         <h1>{formatMonth(month)}</h1>
-        <button type="button" onClick={() => setOffset(offset + 1)} aria-label="Next month">›</button>
+        <button type="button" onClick={() => setOffset(offset + 1)} aria-label="Next month"><Icon name="right" /></button>
       </header>
 
       <section className="totals">
-        <div><span>Income</span><strong className="income">{formatPeso(income)}</strong></div>
-        <div><span>Expense</span><strong className="expense">{formatPeso(expense)}</strong></div>
-        <div><span>Net</span><strong>{formatPeso(net)}</strong></div>
+        <div><span>Income</span><Money cents={income} animate className="income" /></div>
+        <div><span>Expense</span><Money cents={expense} animate className="expense" /></div>
+        <div><span>Net</span><Money cents={net} animate /></div>
       </section>
 
-      {rows.length === 0 && <p className="empty">No transactions this month.</p>}
+      {rows.length === 0 && <p className="empty">Nothing recorded this month. Press + to add an expense or income.</p>}
 
       {Object.entries(byDay).map(([day, list]) => (
         <section key={day} className="group">
           <h2>{formatDay(day)}</h2>
           {list.map((t) => (
             <button type="button" key={t.id} className="row" onClick={() => setEditing(t)}>
+              <span className="avatar" style={{ '--c': categoryColor[t.category_id] ?? 'var(--accent)' }}>
+                {t.type === 'transfer' ? <Icon name="transfer" size={18} /> : (categoryName[t.category_id] ?? '?').slice(0, 1)}
+              </span>
               <span className="row-main">
                 <span>
                   {t.type === 'transfer'
@@ -81,15 +87,13 @@ export default function Transactions() {
                 </span>
                 <small>{t.note || (t.type === 'transfer' ? 'Transfer' : accountName[t.account_id])}</small>
               </span>
-              <span className={t.type}>
-                {t.type === 'expense' ? '−' : t.type === 'income' ? '+' : ''}{formatPeso(t.amount_cents)}
-              </span>
+              <Money cents={t.amount_cents} className={t.type} sign={t.type === 'expense' ? '−' : t.type === 'income' ? '+' : ''} />
             </button>
           ))}
         </section>
       ))}
 
-      <button type="button" className="fab" onClick={() => setEditing({})} aria-label="Add transaction">+</button>
+      <button type="button" className="fab" onClick={() => setEditing({})} aria-label="Add transaction"><Icon name="plus" size={26} /></button>
 
       {editing && (
         <TransactionForm

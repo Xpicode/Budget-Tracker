@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { save, softDelete } from '../repo';
-import { formatPeso, toCents, centsToInput } from '../money';
+import { toCents, centsToInput } from '../money';
 import { today, formatDay } from '../dates';
 import Sheet from '../components/Sheet';
+import Money from '../components/Money';
+import Icon from '../components/Icon';
 
 const FREQ = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
 
@@ -64,12 +66,12 @@ export default function Recurring() {
               <span>{categoryName[r.category_id] ?? '—'}{r.note ? ` · ${r.note}` : ''}</span>
               <small>{FREQ[r.frequency]} · {accountName[r.account_id] ?? '—'} · next {formatDay(r.next_run_date)}</small>
             </span>
-            <span className={r.type}>{r.type === 'expense' ? '−' : '+'}{formatPeso(r.amount_cents)}</span>
+            <Money cents={r.amount_cents} className={r.type} sign={r.type === 'expense' ? '−' : '+'} />
           </button>
         ))}
       </section>
 
-      <button type="button" className="fab" onClick={() => open({})} aria-label="Add rule">+</button>
+      <button type="button" className="fab" onClick={() => open({})} aria-label="Add rule"><Icon name="plus" size={26} /></button>
 
       {editing && (
         <Sheet onClose={() => setEditing(null)}>

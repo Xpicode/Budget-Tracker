@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { seedDefaults } from './repo';
 import { runRecurring } from './recurring';
 import { startSync } from './sync';
@@ -13,6 +13,51 @@ import Recurring from './pages/Recurring';
 import Settings from './pages/Settings';
 import SyncStatus from './components/SyncStatus';
 import UpdateToast from './components/UpdateToast';
+import Icon from './components/Icon';
+
+// secondary: shown in the desktop sidebar only; on phones they live under Settings → Manage.
+const LINKS = [
+  { to: '/', icon: 'home', label: 'Dashboard' },
+  { to: '/transactions', icon: 'list', label: 'Transactions' },
+  { to: '/budgets', icon: 'budget', label: 'Budgets' },
+  { to: '/accounts', icon: 'wallet', label: 'Accounts', secondary: true },
+  { to: '/categories', icon: 'tag', label: 'Categories', secondary: true },
+  { to: '/recurring', icon: 'repeat', label: 'Recurring', secondary: true },
+  { to: '/settings', icon: 'settings', label: 'Settings' },
+];
+
+function Shell() {
+  const { pathname } = useLocation();
+  return (
+    <div className="shell">
+      <nav>
+        <div className="brand"><span className="brand-mark">₱</span>Budget</div>
+        {LINKS.map((l) => (
+          <NavLink key={l.to} to={l.to} end className={l.secondary ? 'secondary' : undefined}>
+            <span className="nav-icon"><Icon name={l.icon} /></span>
+            <span className="nav-label">{l.label}</span>
+          </NavLink>
+        ))}
+        <SyncStatus />
+      </nav>
+      <main>
+        {/* key replays the entrance animation on every page change */}
+        <div className="page" key={pathname}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/budgets" element={<Budgets />} />
+            <Route path="/accounts" element={<Accounts />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/recurring" element={<Recurring />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </div>
+      </main>
+      <UpdateToast />
+    </div>
+  );
+}
 
 export default function App() {
   const theme = useSetting('theme', 'system');
@@ -28,30 +73,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="shell">
-        <nav>
-          <NavLink to="/">Dashboard</NavLink>
-          <NavLink to="/transactions">Transactions</NavLink>
-          <NavLink to="/budgets">Budgets</NavLink>
-          <NavLink to="/accounts" className="secondary">Accounts</NavLink>
-          <NavLink to="/categories" className="secondary">Categories</NavLink>
-          <NavLink to="/recurring" className="secondary">Recurring</NavLink>
-          <NavLink to="/settings">Settings</NavLink>
-          <SyncStatus />
-        </nav>
-        <main>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/transactions" element={<Transactions />} />
-            <Route path="/budgets" element={<Budgets />} />
-            <Route path="/accounts" element={<Accounts />} />
-            <Route path="/categories" element={<Categories />} />
-            <Route path="/recurring" element={<Recurring />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </main>
-        <UpdateToast />
-      </div>
+      <Shell />
     </BrowserRouter>
   );
 }

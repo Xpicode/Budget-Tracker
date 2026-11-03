@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { totals, balances, spendingByCategory, monthlyExpenses, budgetProgress } from './reports';
+import { totals, balances, spendingByCategory, monthlyExpenses, budgetProgress, inBook } from './reports';
 
 const gcash = { id: 'gcash', opening_balance_cents: 500000 };
 const cash = { id: 'cash', opening_balance_cents: 100000 };
@@ -13,6 +13,21 @@ const rows = [
   { type: 'transfer', account_id: 'gcash', to_account_id: 'cash', amount_cents: 100000, txn_date: '2026-10-12' },
   { type: 'expense', account_id: 'cash', category_id: food, amount_cents: 99999, txn_date: '2026-10-13', deleted_at: '2026-10-13T00:00:00.000Z' },
 ];
+
+test('inBook: All shows everything; rows made before books existed count as personal', () => {
+  const biz = { book: 'business' };
+  const old = {};
+  expect([biz, old].filter((t) => inBook(t, 'all'))).toEqual([biz, old]);
+  expect([biz, old].filter((t) => inBook(t, 'business'))).toEqual([biz]);
+  expect([biz, old].filter((t) => inBook(t, 'personal'))).toEqual([old]);
+  // Business profit is just totals over business rows.
+  const rows2 = [
+    { type: 'income', amount_cents: 5000000, book: 'business' },
+    { type: 'expense', amount_cents: 3200000, book: 'business' },
+    { type: 'expense', amount_cents: 99999 },
+  ];
+  expect(totals(rows2.filter((t) => inBook(t, 'business')))).toEqual({ income: 5000000, expense: 3200000, net: 1800000 });
+});
 
 test('totals skip transfers and deleted rows', () => {
   expect(totals(rows)).toEqual({ income: 2000000, expense: 380000, net: 1620000 });

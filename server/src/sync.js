@@ -12,6 +12,8 @@ const base = {
   deleted_at: z.iso.datetime().nullish(),
 };
 const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+// Devices on an older app version send no book; treat those rows as personal.
+const book = z.enum(['personal', 'business']).default('personal');
 
 const SCHEMAS = {
   accounts: z.object({
@@ -42,6 +44,7 @@ const SCHEMAS = {
     frequency: z.enum(['daily', 'weekly', 'monthly']),
     next_run_date: ymd,
     note: z.string().nullish(),
+    book,
   }),
   transactions: z.object({
     ...base,
@@ -52,6 +55,7 @@ const SCHEMAS = {
     amount_cents: z.number().int().positive(),
     txn_date: ymd,
     note: z.string().nullish(),
+    book,
   }),
 };
 

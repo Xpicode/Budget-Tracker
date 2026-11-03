@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { toCents, centsToInput } from '../money';
 import { today } from '../dates';
 import Sheet from './Sheet';
+import { BookSwitch } from './BookFilter';
 
 const TYPES = ['expense', 'income', 'transfer'];
 
-export default function TransactionForm({ initial, categories, accounts, onSubmit, onDelete, onClose }) {
+export default function TransactionForm({ initial, defaultBook = 'personal', categories, accounts, onSubmit, onDelete, onClose }) {
   const [type, setType] = useState(initial.type ?? 'expense');
+  const [book, setBook] = useState(initial.book ?? defaultBook);
   const [error, setError] = useState('');
   const isTransfer = type === 'transfer';
 
@@ -32,6 +34,7 @@ export default function TransactionForm({ initial, categories, accounts, onSubmi
       category_id: isTransfer ? null : f.get('category_id'),
       txn_date: f.get('txn_date'),
       note: f.get('note').trim() || null,
+      book,
     });
   }
 
@@ -49,6 +52,9 @@ export default function TransactionForm({ initial, categories, accounts, onSubmi
             </button>
           ))}
         </div>
+
+        {/* A transfer only moves money between accounts, so it has no book to choose */}
+        {!isTransfer && <BookSwitch value={book} onChange={setBook} />}
 
         <label>
           Amount

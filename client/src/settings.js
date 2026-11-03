@@ -4,3 +4,6 @@ import { db } from './db';
 // Device-local preferences live in the meta table (never synced).
 export const useSetting = (key, fallback) => useLiveQuery(() => db.meta.get(key), [key])?.value ?? fallback;
 export const setSetting = (key, value) => db.meta.put({ key, value });
+
+// Which book Transactions and Dashboard show: 'all' | 'personal' | 'business'. Remembered on this device.
+export const useBook = () => useSetting('book', 'all');

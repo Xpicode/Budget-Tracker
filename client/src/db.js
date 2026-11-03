@@ -10,5 +10,13 @@ db.version(1).stores({
   transactions:    'id, txn_date, account_id, category_id, dirty',
   budgets:         'id, [category_id+month], dirty',
   recurring_rules: 'id, next_run_date, dirty',
-  meta:            'key',              // sync cursor, cached user
+  meta:            'key',              // sync cursor, cached user, settings
+});
+
+// v2: transactions and recurring rules belong to a book, 'personal' or 'business'.
+// Existing rows become personal; not marked dirty, the server's migration does the same.
+db.version(2).upgrade(async (tx) => {
+  for (const table of ['transactions', 'recurring_rules']) {
+    await tx.table(table).toCollection().modify((row) => { row.book ??= 'personal'; });
+  }
 });

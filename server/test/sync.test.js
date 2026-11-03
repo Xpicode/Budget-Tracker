@@ -17,7 +17,7 @@ const account = (id) => ({
 });
 const txn = (id, account_id, amount_cents, updated_at = T0) => ({
   id, account_id, category_id: null, to_account_id: null, type: 'expense', amount_cents,
-  txn_date: '2026-10-13', note: null, created_at: T0, updated_at, deleted_at: null,
+  txn_date: '2026-10-13', note: null, created_at: T0, updated_at, deleted_at: null, book: 'personal',
 });
 
 describe('sync', () => {
@@ -62,6 +62,20 @@ describe('sync', () => {
     expect(asA.body.rows.transactions[0].amount_cents).toBe(20000);
     const asB = await b.get('/api/sync/pull');
     expect(asB.body.rows.transactions).toEqual([]);
+  });
+
+  test('book round-trips, and a row without a book (older app) is stored as personal', async () => {
+    const biz = crypto.randomUUID();
+    const old = crypto.randomUUID();
+    const { book: _, ...withoutBook } = txn(old, acc, 500);
+    await a.post('/api/sync/push').send({ table: 'transactions', rows: [{ ...txn(biz, acc, 250000), book: 'business' }, withoutBook] }).expect(200);
+
+    const { body } = await a.get('/api/sync/pull');
+    const byId = Object.fromEntries(body.rows.transactions.map((t) => [t.id, t.book]));
+    expect(byId[biz]).toBe('business');
+    expect(byId[old]).toBe('personal');
+
+    await a.post('/api/sync/push').send({ table: 'transactions', rows: [{ ...txn(biz, acc, 1), book: 'shop' }] }).expect(400);
   });
 
   test('push and pull without a cookie return 401', async () => {

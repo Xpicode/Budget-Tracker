@@ -7,12 +7,14 @@ import { today, formatDay } from '../dates';
 import Sheet from '../components/Sheet';
 import Money from '../components/Money';
 import Icon from '../components/Icon';
+import { BookSwitch } from '../components/BookFilter';
 
 const FREQ = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
 
 export default function Recurring() {
   const [editing, setEditing] = useState(null); // null = closed, {} = new, row = edit
   const [type, setType] = useState('expense');
+  const [book, setBook] = useState('personal');
   const [error, setError] = useState('');
 
   const rules = useLiveQuery(() => db.recurring_rules.filter((r) => !r.deleted_at).toArray()) ?? [];
@@ -24,6 +26,7 @@ export default function Recurring() {
   function open(rule) {
     setError('');
     setType(rule.type ?? 'expense');
+    setBook(rule.book ?? 'personal');
     setEditing(rule);
   }
 
@@ -44,6 +47,7 @@ export default function Recurring() {
       frequency: f.get('frequency'),
       next_run_date: f.get('next_run_date'),
       note: f.get('note').trim() || null,
+      book,
     });
     setEditing(null);
   }
@@ -64,7 +68,10 @@ export default function Recurring() {
           <button type="button" key={r.id} className="row" onClick={() => open(r)}>
             <span className="row-main">
               <span>{categoryName[r.category_id] ?? '—'}{r.note ? ` · ${r.note}` : ''}</span>
-              <small>{FREQ[r.frequency]} · {accountName[r.account_id] ?? '—'} · next {formatDay(r.next_run_date)}</small>
+              <small>
+                {r.book === 'business' && <span className="badge">Business</span>}
+                {FREQ[r.frequency]} · {accountName[r.account_id] ?? '—'} · next {formatDay(r.next_run_date)}
+              </small>
             </span>
             <Money cents={r.amount_cents} className={r.type} sign={r.type === 'expense' ? '−' : '+'} />
           </button>
@@ -82,6 +89,7 @@ export default function Recurring() {
                 <button type="button" key={t} className={t === type ? 'active' : ''} onClick={() => setType(t)}>{t}</button>
               ))}
             </div>
+            <BookSwitch value={book} onChange={setBook} />
             <label>
               Amount
               <input name="amount" inputMode="decimal" placeholder="0.00" required autoFocus

@@ -22,9 +22,9 @@ export default function Settings() {
     const name = (list, id) => list.find((x) => x.id === id)?.name ?? '';
     const rows = txns.map((t) => [
       t.txn_date, t.type, name(categories, t.category_id), name(accounts, t.account_id),
-      name(accounts, t.to_account_id), centsToInput(t.amount_cents), t.note,
+      name(accounts, t.to_account_id), centsToInput(t.amount_cents), t.note, t.book ?? 'personal',
     ]);
-    downloadCsv(`budget-${range.from}_${range.to}.csv`, toCsv(['date', 'type', 'category', 'account', 'to_account', 'amount', 'note'], rows));
+    downloadCsv(`budget-${range.from}_${range.to}.csv`, toCsv(['date', 'type', 'category', 'account', 'to_account', 'amount', 'note', 'book'], rows));
   }
 
   return (

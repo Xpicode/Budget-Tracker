@@ -432,6 +432,20 @@ input[type="color"] { padding: 4px; }
   transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
 }
 .type-toggle .active { background: var(--card); color: var(--text); box-shadow: var(--shadow-sm); }
+.book-filter { margin-bottom: 16px; }
+.book-filter button,
+.book-switch button { height: 32px; font-size: 13px; }
+.badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 1px;
+}
 
 .error { font-size: 14px; color: var(--expense); }
 .actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }

@@ -25,6 +25,7 @@ export function catchUp(rule, todayYmd) {
       amount_cents: rule.amount_cents,
       txn_date: date,
       note: rule.note ?? null,
+      book: rule.book ?? 'personal',
     });
     date = advance(date, rule.frequency);
   }

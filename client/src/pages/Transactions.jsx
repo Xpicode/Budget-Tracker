@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { save, softDelete } from '../repo';
-import { totals } from '../reports';
+import { totals, inBook } from '../reports';
+import BookFilter from '../components/BookFilter';
+import { useBook } from '../settings';
 import { useSetting } from '../settings';
 import { today, shiftMonth, period, currentMonth, formatDay, formatMonth } from '../dates';
 import TransactionForm from '../components/TransactionForm';
@@ -12,6 +14,7 @@ import { categoryColors } from '../colors';
 
 export default function Transactions() {
   const startDay = useSetting('budget_start', 1);
+  const book = useBook();
   const [offset, setOffset] = useState(0);      // months away from the current budget period
   const [editing, setEditing] = useState(null); // null = form closed, {} = new, row = edit
   const [undo, setUndo] = useState(null);       // last deleted row, shown in the toast
@@ -23,10 +26,10 @@ export default function Transactions() {
   const rows = useLiveQuery(async () => {
     const list = await db.transactions
       .where('txn_date').between(from, to, true, false)
-      .filter((t) => !t.deleted_at)
+      .filter((t) => !t.deleted_at && inBook(t, book))
       .toArray();
     return list.sort((a, b) => b.txn_date.localeCompare(a.txn_date) || b.created_at.localeCompare(a.created_at));
-  }, [from, to]) ?? [];
+  }, [from, to, book]) ?? [];
   // All categories/accounts for showing names (a deleted one may still be on old rows);
   // only live ones are offered in the form.
   const categories = useLiveQuery(() => db.categories.toArray()) ?? [];
@@ -63,6 +66,8 @@ export default function Transactions() {
         <button type="button" onClick={() => setOffset(offset + 1)} aria-label="Next month"><Icon name="right" /></button>
       </header>
 
+      <BookFilter />
+
       <section className="totals">
         <div><span>Income</span><Money cents={income} animate className="income" /></div>
         <div><span>Expense</span><Money cents={expense} animate className="expense" /></div>
@@ -85,7 +90,10 @@ export default function Transactions() {
                     ? `${accountName[t.account_id] ?? '—'} → ${accountName[t.to_account_id] ?? '—'}`
                     : categoryName[t.category_id] ?? '—'}
                 </span>
-                <small>{t.note || (t.type === 'transfer' ? 'Transfer' : accountName[t.account_id])}</small>
+                <small>
+                  {book === 'all' && t.book === 'business' && <span className="badge">Business</span>}
+                  {t.note || (t.type === 'transfer' ? 'Transfer' : accountName[t.account_id])}
+                </small>
               </span>
               <Money cents={t.amount_cents} className={t.type} sign={t.type === 'expense' ? '−' : t.type === 'income' ? '+' : ''} />
             </button>
@@ -98,6 +106,7 @@ export default function Transactions() {
       {editing && (
         <TransactionForm
           initial={editing}
+          defaultBook={book === 'all' ? 'personal' : book}
           categories={categories.filter((c) => !c.deleted_at)}
           accounts={accounts.filter((a) => !a.deleted_at && !a.archived)}
           onSubmit={submit}

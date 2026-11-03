@@ -4,10 +4,12 @@ import {
 } from 'recharts';
 import { db } from '../db';
 import { formatPeso } from '../money';
-import { balances, totals, spendingByCategory, monthlyExpenses } from '../reports';
+import { balances, totals, spendingByCategory, monthlyExpenses, inBook } from '../reports';
 import { useSetting } from '../settings';
 import { today, shiftMonth, period, currentMonth, formatMonth } from '../dates';
 import Money from '../components/Money';
+import BookFilter from '../components/BookFilter';
+import { useBook } from '../settings';
 import { categoryColors } from '../colors';
 
 const OTHER = '#9ca3af';
@@ -28,7 +30,10 @@ export default function Dashboard() {
   const accounts = useLiveQuery(() => db.accounts.filter((a) => !a.deleted_at && !a.archived).toArray()) ?? [];
   const categories = useLiveQuery(() => db.categories.toArray()) ?? [];
   const txns = useLiveQuery(() => db.transactions.filter((t) => !t.deleted_at).toArray()) ?? [];
-  const monthTxns = txns.filter((t) => t.txn_date >= from && t.txn_date < to);
+  const book = useBook();
+  // Account balances use every row (money in an account is the same money); the rest follows the book filter.
+  const bookTxns = txns.filter((t) => inBook(t, book));
+  const monthTxns = bookTxns.filter((t) => t.txn_date >= from && t.txn_date < to);
 
   const balance = balances(accounts, txns);
   const total = accounts.reduce((s, a) => s + balance[a.id], 0);
@@ -44,7 +49,7 @@ export default function Dashboard() {
   const rest = spending.slice(MAX_SLICES).reduce((s, x) => s + x.cents, 0);
   if (rest > 0) slices.push({ name: 'Other', cents: rest, color: OTHER });
 
-  const trend = monthlyExpenses(txns, periods).map((m) => ({
+  const trend = monthlyExpenses(bookTxns, periods).map((m) => ({
     ...m,
     label: new Date(m.month + '-01T00:00').toLocaleDateString('en-PH', { month: 'short' }),
   }));
@@ -58,8 +63,10 @@ export default function Dashboard() {
         </div>
       </header>
 
+      <BookFilter />
+
       <section className="hero">
-        <span className="hero-label">Left after spending</span>
+        <span className="hero-label">{book === 'business' ? 'Business profit' : 'Left after spending'}</span>
         <Money cents={net} animate className={`hero-amount ${net < 0 ? 'expense' : ''}`} />
         {spentShare !== null && (
           <div className="ratio" title={`${spentShare}% of income spent`}>
@@ -67,7 +74,9 @@ export default function Dashboard() {
           </div>
         )}
         <p className="hero-note">
-          {spentShare === null ? 'No income recorded yet this month.' : `You've spent ${spentShare}% of what came in.`}
+          {book === 'business'
+            ? (spentShare === null ? 'No sales recorded yet this month.' : `Costs are ${spentShare}% of sales.`)
+            : (spentShare === null ? 'No income recorded yet this month.' : `You've spent ${spentShare}% of what came in.`)}
         </p>
         <div className="hero-split">
           <div><span>Income</span><Money cents={income} animate className="income" /></div>

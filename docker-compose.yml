@@ -1,3 +1,5 @@
+# Dev:        docker compose up -d                  -> only Postgres (the services below have profiles)
+# Production: docker compose --profile prod up -d   -> Postgres + app + nightly backup + HTTPS tunnel
 services:
   db:
     image: postgres:16
@@ -7,9 +9,54 @@ services:
       POSTGRES_DB: budget
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}   # read from .env
     ports:
-      - "5434:5432"   # host 5434 -> container 5432 (5432 and 5433 are used by other projects)
+      - "127.0.0.1:5434:5432"   # this machine only; 5432 and 5433 are used by other projects
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "budget"]
+      interval: 5s
+      retries: 10
+
+  app:
+    profiles: [prod]
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://budget:${POSTGRES_PASSWORD}@db:5432/budget
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 4000
+    ports:
+      - "127.0.0.1:8080:4000"   # for a quick local check; the tunnel reaches it as http://app:4000
+
+  backup:
+    profiles: [prod]
+    image: postgres:16
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    # One gzipped dump a day, kept for 14 days.
+    # ponytail: sleeps 24 h between dumps instead of a cron schedule; restart time decides the hour.
+    command: >
+      sh -c 'while true; do
+        pg_dump -h db -U budget budget | gzip > /backups/budget-$$(date +%F).sql.gz;
+        find /backups -name "*.sql.gz" -mtime +14 -delete;
+        sleep 86400;
+      done'
+
+  tunnel:
+    profiles: [prod]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on: [app]
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
 
 volumes:
   pgdata:

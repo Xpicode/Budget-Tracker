@@ -1,3 +1,5 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { z } from 'zod';
@@ -14,6 +16,14 @@ app.get('/api/health', (req, res) => {
 });
 app.use('/api/auth', auth);
 app.use('/api/sync', sync);
+app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
+
+// Production: serve the built React app; any other path gets index.html so client routes work on reload.
+if (process.env.NODE_ENV === 'production') {
+  const dist = fileURLToPath(new URL('../../client/dist', import.meta.url));
+  app.use(express.static(dist));
+  app.get(/.*/, (req, res) => res.sendFile(path.join(dist, 'index.html')));
+}
 
 // Central error handler. Express 5 sends rejected promises from async routes here automatically.
 app.use((err, req, res, next) => {

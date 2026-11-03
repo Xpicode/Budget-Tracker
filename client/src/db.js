@@ -32,3 +32,7 @@ db.version(4).upgrade((tx) => {
     row.dirty = 1;
   });
 });
+
+// v5: accounts belong to a book too. Existing ones are personal; not marked dirty, the server's migration does the same.
+db.version(5).upgrade((tx) =>
+  tx.table('accounts').toCollection().modify((row) => { row.book ??= 'personal'; }));

@@ -60,7 +60,13 @@ export const budgetId = (category_id, month) => uuidv5(`budget:${category_id}:${
 export const seedDefaults = () =>
   db.transaction('rw', db.accounts, db.categories, async () => {
     if (!(await db.accounts.count())) {
-      await db.accounts.put(seedRow('accounts', 'Cash', { opening_balance_cents: 0, archived: false }));
+      await db.accounts.put(seedRow('accounts', 'Cash', { opening_balance_cents: 0, archived: false, book: 'personal' }));
+    }
+    // The business needs at least one account to pick in the form.
+    const accounts = await db.accounts.toArray();
+    const bizCash = seedRow('accounts', 'Business Cash', { opening_balance_cents: 0, archived: false, book: 'business' });
+    if (!accounts.some((a) => a.id === bizCash.id || (!a.deleted_at && ['business', 'both'].includes(a.book)))) {
+      await db.accounts.put(bizCash);
     }
     const existing = await db.categories.toArray();
     const ids = new Set(existing.map((c) => c.id));

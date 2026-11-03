@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import { db } from '../db';
 import { formatPeso } from '../money';
-import { balances, totals, spendingByCategory, monthlyExpenses, inBook } from '../reports';
+import { balances, totals, spendingByCategory, monthlyExpenses, inBook, accountFits } from '../reports';
 import { useSetting } from '../settings';
 import { today, shiftMonth, period, currentMonth, formatMonth } from '../dates';
 import Money from '../components/Money';
@@ -31,12 +31,13 @@ export default function Dashboard() {
   const categories = useLiveQuery(() => db.categories.toArray()) ?? [];
   const txns = useLiveQuery(() => db.transactions.filter((t) => !t.deleted_at).toArray()) ?? [];
   const book = useBook();
-  // Account balances use every row (money in an account is the same money); the rest follows the book filter.
+  // Totals and charts follow the book filter. The balance card adds up this book's accounts,
+  // each with every row in it (money in an account is the same money whichever book a row is in).
   const bookTxns = txns.filter((t) => inBook(t, book));
   const monthTxns = bookTxns.filter((t) => t.txn_date >= from && t.txn_date < to);
 
   const balance = balances(accounts, txns);
-  const total = accounts.reduce((s, a) => s + balance[a.id], 0);
+  const total = accounts.filter((a) => accountFits(a, book)).reduce((s, a) => s + balance[a.id], 0);
   const { income, expense, net } = totals(monthTxns);
   const spentShare = income > 0 ? Math.round((expense / income) * 100) : null;
 
@@ -81,7 +82,7 @@ export default function Dashboard() {
         <div className="hero-split">
           <div><span>Income</span><Money cents={income} animate className="income" /></div>
           <div><span>Expenses</span><Money cents={expense} animate className="expense" /></div>
-          <div><span>All accounts</span><Money cents={total} animate /></div>
+          <div><span>{{ all: 'All accounts', personal: 'Personal accounts', business: 'Business accounts' }[book]}</span><Money cents={total} animate /></div>
         </div>
       </section>
 

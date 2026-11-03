@@ -9,6 +9,9 @@ export const inBook = (t, book) => book === 'all' || (t.book ?? 'personal') === 
 // Whether a category is offered when entering a transaction in `book`. Categories without a book are 'both'.
 export const categoryFits = (c, book) => (c.book ?? 'both') === 'both' || c.book === book;
 
+// Whether an account belongs to `book` ('all' matches every account). Accounts without a book are personal.
+export const accountFits = (a, book) => book === 'all' || [book, 'both'].includes(a.book ?? 'personal');
+
 // Month income / expense / net. Transfers move money between accounts and are not spending.
 export function totals(txns) {
   let income = 0;

@@ -3,7 +3,7 @@ import { toCents, centsToInput } from '../money';
 import { today } from '../dates';
 import Sheet from './Sheet';
 import { BookSwitch } from './BookFilter';
-import { categoryFits } from '../reports';
+import { categoryFits, accountFits } from '../reports';
 
 const TYPES = ['expense', 'income', 'transfer'];
 
@@ -39,7 +39,10 @@ export default function TransactionForm({ initial, defaultBook = 'personal', cat
     });
   }
 
-  const accountOptions = accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>);
+  // Income and expenses use this book's accounts (plus the row's own, when editing);
+  // a transfer may move money between any accounts, e.g. from the business to personal.
+  const usable = isTransfer ? accounts : accounts.filter((a) => accountFits(a, book) || a.id === initial.account_id);
+  const accountOptions = usable.map((a) => <option key={a.id} value={a.id}>{a.name}</option>);
 
   return (
     <Sheet onClose={onClose}>
@@ -86,7 +89,7 @@ export default function TransactionForm({ initial, defaultBook = 'personal', cat
 
         <label>
           {isTransfer ? 'From' : 'Account'}
-          <select name="account_id" required defaultValue={initial.account_id ?? accounts[0]?.id ?? ''}>
+          <select name="account_id" key={isTransfer ? 'transfer' : book} required defaultValue={initial.account_id ?? usable[0]?.id ?? ''}>
             <option value="" disabled>Choose…</option>
             {accountOptions}
           </select>

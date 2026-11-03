@@ -13,7 +13,7 @@ async function login(email) {
 }
 
 const account = (id) => ({
-  id, name: 'Cash', opening_balance_cents: 0, archived: false, created_at: T0, updated_at: T0, deleted_at: null,
+  id, name: 'Cash', opening_balance_cents: 0, archived: false, created_at: T0, updated_at: T0, deleted_at: null, book: 'personal',
 });
 const txn = (id, account_id, amount_cents, updated_at = T0) => ({
   id, account_id, category_id: null, to_account_id: null, type: 'expense', amount_cents,
@@ -87,6 +87,17 @@ describe('sync', () => {
     const { body } = await a.get('/api/sync/pull');
     const byId = Object.fromEntries(body.rows.categories.map((c) => [c.id, c.book]));
     expect(byId).toMatchObject({ [biz]: 'business', [old]: 'both' });
+  });
+
+  test('an account keeps its book; one without a book (older app) is personal', async () => {
+    const biz = crypto.randomUUID();
+    const old = crypto.randomUUID();
+    const { book: _, ...withoutBook } = account(old);
+    await a.post('/api/sync/push').send({ table: 'accounts', rows: [{ ...account(biz), name: 'Business GCash', book: 'business' }, withoutBook] }).expect(200);
+
+    const { body } = await a.get('/api/sync/pull');
+    const byId = Object.fromEntries(body.rows.accounts.map((r) => [r.id, r.book]));
+    expect(byId).toMatchObject({ [biz]: 'business', [old]: 'personal' });
   });
 
   test('push and pull without a cookie return 401', async () => {

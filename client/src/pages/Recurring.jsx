@@ -8,7 +8,7 @@ import Sheet from '../components/Sheet';
 import Money from '../components/Money';
 import Icon from '../components/Icon';
 import { BookSwitch } from '../components/BookFilter';
-import { categoryFits } from '../reports';
+import { categoryFits, accountFits } from '../reports';
 
 const FREQ = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
 
@@ -107,9 +107,11 @@ export default function Recurring() {
             </label>
             <label>
               Account
-              <select name="account_id" required defaultValue={editing.account_id ?? accounts[0]?.id ?? ''}>
+              <select name="account_id" key={book} required
+                defaultValue={editing.account_id ?? accounts.find((a) => accountFits(a, book))?.id ?? ''}>
                 <option value="" disabled>Choose…</option>
-                {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                {accounts.filter((a) => accountFits(a, book) || a.id === editing.account_id)
+                  .map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </label>
             <label>

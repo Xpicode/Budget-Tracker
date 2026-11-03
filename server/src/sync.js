@@ -21,6 +21,7 @@ const SCHEMAS = {
     name: z.string().min(1),
     opening_balance_cents: z.number().int(),
     archived: z.boolean(),
+    book: z.enum(['personal', 'business', 'both']).default('personal'),
   }),
   categories: z.object({
     ...base,

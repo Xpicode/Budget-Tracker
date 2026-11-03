@@ -37,16 +37,19 @@ async function push(table) {
   }
 }
 
+// The merge rule: keep the local copy only if it is dirty AND newer (it will win on the next push);
+// otherwise the pulled row replaces it and is stored clean.
+export const merge = (local, remote) =>
+  local?.dirty && local.updated_at > remote.updated_at ? null : { ...remote, dirty: 0 };
+
 async function pull() {
   const since = (await db.meta.get('cursor'))?.value ?? '1970-01-01T00:00:00.000Z';
   const { rows, cursor } = await api(`/api/sync/pull?since=${encodeURIComponent(since)}`);
   await db.transaction('rw', [...TABLES.map((t) => db[t]), db.meta], async () => {
     for (const table of TABLES) {
       for (const row of rows[table] ?? []) {
-        const local = await db[table].get(row.id);
-        // Keep the local copy only if it is dirty AND newer; it will win on the next push.
-        if (local?.dirty && local.updated_at > row.updated_at) continue;
-        await db[table].put({ ...row, dirty: 0 });
+        const merged = merge(await db[table].get(row.id), row);
+        if (merged) await db[table].put(merged);
       }
     }
     await db.meta.put({ key: 'cursor', value: cursor });

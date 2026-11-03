@@ -1,0 +1,83 @@
+import { describe, test, expect, beforeAll } from 'vitest';
+import request from 'supertest';
+import { app } from '../src/app.js';
+
+const T0 = '2026-10-13T01:00:00.000Z';
+const password = 'password123';
+
+async function login(email) {
+  const agent = request.agent(app);
+  await agent.post('/api/auth/register').send({ email, password }).expect(201);
+  await agent.post('/api/auth/login').send({ email, password }).expect(200);
+  return agent;
+}
+
+const account = (id) => ({
+  id, name: 'Cash', opening_balance_cents: 0, archived: false, created_at: T0, updated_at: T0, deleted_at: null,
+});
+const txn = (id, account_id, amount_cents, updated_at = T0) => ({
+  id, account_id, category_id: null, to_account_id: null, type: 'expense', amount_cents,
+  txn_date: '2026-10-13', note: null, created_at: T0, updated_at, deleted_at: null,
+});
+
+describe('sync', () => {
+  let a;
+  let b;
+  const acc = crypto.randomUUID();
+  const tx = crypto.randomUUID();
+
+  beforeAll(async () => {
+    a = await login(`a-${Date.now()}@test.com`);
+    b = await login(`b-${Date.now()}@test.com`);
+  });
+
+  test('push then pull returns the same row', async () => {
+    await a.post('/api/sync/push').send({ table: 'accounts', rows: [account(acc)] }).expect(200);
+    await a.post('/api/sync/push').send({ table: 'transactions', rows: [txn(tx, acc, 15075)] }).expect(200);
+
+    const { body } = await a.get('/api/sync/pull').expect(200);
+    expect(body.rows.accounts).toEqual([account(acc)]);
+    expect(body.rows.transactions).toEqual([txn(tx, acc, 15075)]); // bigint -> number, date -> 'YYYY-MM-DD'
+    expect(body.cursor > T0).toBe(true);
+  });
+
+  test('an older updated_at does not overwrite a newer one', async () => {
+    await a.post('/api/sync/push').send({ table: 'transactions', rows: [txn(tx, acc, 20000, '2026-10-13T02:00:00.000Z')] }).expect(200);
+    await a.post('/api/sync/push').send({ table: 'transactions', rows: [txn(tx, acc, 1, '2026-10-13T00:30:00.000Z')] }).expect(200);
+
+    const { body } = await a.get('/api/sync/pull');
+    expect(body.rows.transactions[0].amount_cents).toBe(20000);
+    expect(body.rows.transactions[0].updated_at).toBe('2026-10-13T02:00:00.000Z');
+  });
+
+  test('user B cannot read or overwrite user A rows, even with the right id', async () => {
+    const before = await b.get('/api/sync/pull').expect(200);
+    expect(before.body.rows.accounts).toEqual([]);
+    expect(before.body.rows.transactions).toEqual([]);
+
+    // Newer timestamp and the exact id: still ignored, because the row belongs to A.
+    await b.post('/api/sync/push').send({ table: 'transactions', rows: [txn(tx, acc, 999999, '2026-10-13T09:00:00.000Z')] }).expect(200);
+
+    const asA = await a.get('/api/sync/pull');
+    expect(asA.body.rows.transactions[0].amount_cents).toBe(20000);
+    const asB = await b.get('/api/sync/pull');
+    expect(asB.body.rows.transactions).toEqual([]);
+  });
+
+  test('push and pull without a cookie return 401', async () => {
+    await request(app).post('/api/sync/push').send({ table: 'accounts', rows: [] }).expect(401);
+    await request(app).get('/api/sync/pull').expect(401);
+  });
+
+  test('invalid rows and unknown tables are rejected with 400', async () => {
+    const bad = await a.post('/api/sync/push').send({ table: 'transactions', rows: [txn(crypto.randomUUID(), acc, -5)] }).expect(400);
+    expect(bad.body.fields[0].field).toBe('amount_cents');
+    await a.post('/api/sync/push').send({ table: 'users', rows: [] }).expect(400);
+  });
+
+  test('pull since a future cursor returns nothing and keeps the cursor', async () => {
+    const { body } = await a.get('/api/sync/pull?since=2030-01-01T00:00:00.000Z').expect(200);
+    expect(Object.values(body.rows).every((rows) => rows.length === 0)).toBe(true);
+    expect(body.cursor).toBe('2030-01-01T00:00:00.000Z');
+  });
+});

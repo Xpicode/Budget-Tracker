@@ -62,7 +62,7 @@ Same-origin design: in dev, Vite proxies `/api` to Express; in production, Expre
 **Goal:** Postgres running, Express answering, React page loading.
 
 1. Install Node 24, Docker Desktop, Git, VS Code. Check: `node -v`, `docker -v`, `git -v`.
-2. `docker-compose.yml` with one `postgres:16` service, a named volume, port 5433 on the host (5432 is taken by a local Postgres), password from `.env`.
+2. `docker-compose.yml` with one `postgres:16` service, a named volume, port 5434 on the host (5432 and 5433 are used by other projects), password from `.env`.
 3. Server: `npm init -y`, set `"type": "module"`, install `express pg zod bcryptjs jsonwebtoken cookie-parser`, dev: `vitest supertest`. Add `GET /api/health` → `{ ok: true }`. Run with `node --env-file=.env --watch src/index.js`.
 4. Client: `npm create vite@latest client -- --template react`, install `react-router-dom dexie dexie-react-hooks recharts uuid`, dev: `vite-plugin-pwa vitest`. Add the `/api` proxy in `vite.config.js`.
 5. Git repo with `.gitignore` covering `node_modules`, `.env`, `dist`.

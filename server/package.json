@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "test": "vitest",
+    "test": "node --env-file=../.env node_modules/vitest/vitest.mjs run",
     "dev": "node --env-file=../.env --watch src/index.js",
     "start": "node --env-file=../.env src/index.js",
     "migrate": "node --env-file=../.env src/migrate.js"

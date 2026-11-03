@@ -1,11 +1,13 @@
-// Pure functions over plain arrays, so Phase 9 can test them without IndexedDB.
-// Callers pass rows that already exclude deleted_at.
+// Pure functions over plain arrays, so tests can run them without IndexedDB.
+// Rows with deleted_at are ignored here too, so no caller can forget golden rule 3.
+
+const live = (txns) => txns.filter((t) => !t.deleted_at);
 
 // Month income / expense / net. Transfers move money between accounts and are not spending.
 export function totals(txns) {
   let income = 0;
   let expense = 0;
-  for (const t of txns) {
+  for (const t of live(txns)) {
     if (t.type === 'income') income += t.amount_cents;
     else if (t.type === 'expense') expense += t.amount_cents;
   }
@@ -17,7 +19,7 @@ export function totals(txns) {
 export function balances(accounts, txns) {
   const out = Object.fromEntries(accounts.map((a) => [a.id, a.opening_balance_cents]));
   const add = (id, cents) => { if (id in out) out[id] += cents; };
-  for (const t of txns) {
+  for (const t of live(txns)) {
     if (t.type === 'income') add(t.account_id, t.amount_cents);
     else if (t.type === 'expense') add(t.account_id, -t.amount_cents);
     else if (t.type === 'transfer') {
@@ -31,7 +33,7 @@ export function balances(accounts, txns) {
 // Expenses per category, biggest first: [{ category_id, cents }].
 export function spendingByCategory(txns) {
   const sums = {};
-  for (const t of txns) {
+  for (const t of live(txns)) {
     if (t.type === 'expense') sums[t.category_id] = (sums[t.category_id] ?? 0) + t.amount_cents;
   }
   return Object.entries(sums)
@@ -41,18 +43,20 @@ export function spendingByCategory(txns) {
 
 // Expense total per period: periods = [{ month, from, to }] with from inclusive, to exclusive.
 export function monthlyExpenses(txns, periods) {
+  const rows = live(txns);
   return periods.map(({ month, from, to }) => ({
     month,
-    cents: txns.reduce((s, t) => (t.type === 'expense' && t.txn_date >= from && t.txn_date < to ? s + t.amount_cents : s), 0),
+    cents: rows.reduce((s, t) => (t.type === 'expense' && t.txn_date >= from && t.txn_date < to ? s + t.amount_cents : s), 0),
   }));
 }
 
 // Spent vs limit for each budget row, over the given period's rows (already filtered by date).
 // level: ok (< 80%), warn (80–100%), over (> 100%).
 export function budgetProgress(budgets, txns) {
+  const rows = live(txns);
   return budgets.map((b) => {
     let spent = 0;
-    for (const t of txns) {
+    for (const t of rows) {
       if (t.type === 'expense' && t.category_id === b.category_id) spent += t.amount_cents;
     }
     // Compare in integer centavos so ₱1,000.01 on a ₱1,000 limit is "over", not a rounded 100%.

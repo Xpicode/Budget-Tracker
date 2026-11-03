@@ -16,11 +16,12 @@ export default function BookFilter() {
   );
 }
 
-// Personal / Business switch inside a form.
-export function BookSwitch({ value, onChange }) {
+// Personal / Business switch inside a form; `both` adds a third option (used for categories).
+export function BookSwitch({ value, onChange, both = false }) {
+  const options = both ? [...OPTIONS.slice(1), ['both', 'Both']] : OPTIONS.slice(1);
   return (
     <div className="type-toggle book-switch" role="group" aria-label="Book">
-      {OPTIONS.slice(1).map(([v, label]) => (
+      {options.map(([v, label]) => (
         <button type="button" key={v} className={v === value ? 'active' : ''} aria-pressed={v === value} onClick={() => onChange(v)}>
           {label}
         </button>

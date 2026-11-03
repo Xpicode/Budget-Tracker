@@ -78,6 +78,17 @@ describe('sync', () => {
     await a.post('/api/sync/push').send({ table: 'transactions', rows: [{ ...txn(biz, acc, 1), book: 'shop' }] }).expect(400);
   });
 
+  test('a category keeps its book; one without a book (older app) is offered in both', async () => {
+    const cat = (id, extra = {}) => ({ id, name: 'Stock', type: 'expense', created_at: T0, updated_at: T0, ...extra });
+    const biz = crypto.randomUUID();
+    const old = crypto.randomUUID();
+    await a.post('/api/sync/push').send({ table: 'categories', rows: [cat(biz, { book: 'business' }), cat(old)] }).expect(200);
+
+    const { body } = await a.get('/api/sync/pull');
+    const byId = Object.fromEntries(body.rows.categories.map((c) => [c.id, c.book]));
+    expect(byId).toMatchObject({ [biz]: 'business', [old]: 'both' });
+  });
+
   test('push and pull without a cookie return 401', async () => {
     await request(app).post('/api/sync/push').send({ table: 'accounts', rows: [] }).expect(401);
     await request(app).get('/api/sync/pull').expect(401);

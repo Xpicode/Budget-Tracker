@@ -337,6 +337,7 @@ nav a:active .nav-icon { transform: scale(0.9); }
 }
 .empty { margin: 40px 16px; font-size: 14px; color: var(--muted); text-align: center; }
 .hint { font-size: 13px; color: var(--muted); }
+.page > .hint { margin: -4px 4px 18px; }
 a.row { display: flex; }
 
 /* Budgets */
@@ -446,6 +447,8 @@ input[type="color"] { padding: 4px; }
   font-weight: 600;
   vertical-align: 1px;
 }
+.badge.personal { background: var(--field); color: var(--muted); }
+.row > .badge { margin-right: 0; }
 
 .error { font-size: 14px; color: var(--expense); }
 .actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }

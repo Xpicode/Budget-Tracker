@@ -6,6 +6,9 @@ const live = (txns) => txns.filter((t) => !t.deleted_at);
 // The All / Personal / Business filter. Rows without a book (made before books existed) are personal.
 export const inBook = (t, book) => book === 'all' || (t.book ?? 'personal') === book;
 
+// Whether a category is offered when entering a transaction in `book`. Categories without a book are 'both'.
+export const categoryFits = (c, book) => (c.book ?? 'both') === 'both' || c.book === book;
+
 // Month income / expense / net. Transfers move money between accounts and are not spending.
 export function totals(txns) {
   let income = 0;

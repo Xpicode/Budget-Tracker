@@ -19,13 +19,20 @@ export const softDelete = (table, id) => {
   return p;
 };
 
+// [name, type, book]. Business ones are a starter set for a wholesale streetwear shop; rename or delete freely.
 const DEFAULT_CATEGORIES = [
-  ['Food', 'expense'],
-  ['Transport', 'expense'],
-  ['Bills', 'expense'],
-  ['Shopping', 'expense'],
-  ['Salary', 'income'],
-  ['Other', 'expense'],
+  ['Food', 'expense', 'personal'],
+  ['Transport', 'expense', 'personal'],
+  ['Bills', 'expense', 'personal'],
+  ['Shopping', 'expense', 'personal'],
+  ['Salary', 'income', 'personal'],
+  ['Other', 'expense', 'personal'],
+  ['Restock: T-shirts', 'expense', 'business'],
+  ['Restock: Hoodies', 'expense', 'business'],
+  ['Shipping', 'expense', 'business'],
+  ['Packaging', 'expense', 'business'],
+  ['Platform fees', 'expense', 'business'],
+  ['Wholesale sales', 'income', 'business'],
 ];
 
 // Seed rows get a fixed id (UUID v5 of the name) and an old timestamp, so every device creates
@@ -46,12 +53,20 @@ const seedRow = (table, name, fields) => ({
 // budget offline produce the same row, and the newer limit wins instead of duplicating.
 export const budgetId = (category_id, month) => uuidv5(`budget:${category_id}:${month}`, SEED_NS);
 
-// First run only. Runs inside a transaction so two overlapping calls (React StrictMode) cannot both seed.
+// Every start: a Cash account on first run, and any default category this device doesn't have yet
+// (so existing installs get the business set). A default that was deleted still exists as a row and is
+// left alone, and one whose name is already in use is skipped, so nothing is duplicated.
+// Runs inside a transaction so two overlapping calls (React StrictMode) cannot both seed.
 export const seedDefaults = () =>
   db.transaction('rw', db.accounts, db.categories, async () => {
-    if (await db.accounts.count()) return;
-    await db.accounts.put(seedRow('accounts', 'Cash', { opening_balance_cents: 0, archived: false }));
-    await db.categories.bulkPut(
-      DEFAULT_CATEGORIES.map(([name, type]) => seedRow('categories', name, { type, icon: null, color: null })),
-    );
+    if (!(await db.accounts.count())) {
+      await db.accounts.put(seedRow('accounts', 'Cash', { opening_balance_cents: 0, archived: false }));
+    }
+    const existing = await db.categories.toArray();
+    const ids = new Set(existing.map((c) => c.id));
+    const names = new Set(existing.filter((c) => !c.deleted_at).map((c) => `${c.type}:${c.name.toLowerCase()}`));
+    const missing = DEFAULT_CATEGORIES
+      .map(([name, type, book]) => seedRow('categories', name, { type, icon: null, color: null, book }))
+      .filter((c) => !ids.has(c.id) && !names.has(`${c.type}:${c.name.toLowerCase()}`));
+    if (missing.length) await db.categories.bulkPut(missing);
   });

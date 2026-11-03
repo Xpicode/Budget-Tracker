@@ -3,6 +3,7 @@ import { toCents, centsToInput } from '../money';
 import { today } from '../dates';
 import Sheet from './Sheet';
 import { BookSwitch } from './BookFilter';
+import { categoryFits } from '../reports';
 
 const TYPES = ['expense', 'income', 'transfer'];
 
@@ -71,10 +72,12 @@ export default function TransactionForm({ initial, defaultBook = 'personal', cat
         {!isTransfer && (
           <label>
             Category
-            {/* key={type} remounts the select when the type changes, so a stale pick is cleared */}
-            <select name="category_id" key={type} required defaultValue={initial.category_id ?? ''}>
+            {/* the key remounts the select when type or book changes, so a stale pick is cleared */}
+            <select name="category_id" key={`${type}-${book}`} required defaultValue={initial.category_id ?? ''}>
               <option value="" disabled>Choose…</option>
-              {categories.filter((c) => c.type === type).map((c) => (
+              {/* Only this book's categories, but never hide the one an existing row already uses */}
+              {categories.filter((c) => c.type === type && (categoryFits(c, book) || c.id === initial.category_id))
+                .sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>

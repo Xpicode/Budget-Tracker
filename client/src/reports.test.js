@@ -1,5 +1,12 @@
 import { test, expect } from 'vitest';
-import { totals, balances, spendingByCategory, monthlyExpenses, budgetProgress, inBook } from './reports';
+import { totals, balances, spendingByCategory, monthlyExpenses, budgetProgress, inBook, categoryFits } from './reports';
+
+test('categoryFits: a category is offered in its own book, "both" (or no book) in either', () => {
+  const offered = (book) => [{ id: 'p', book: 'personal' }, { id: 'b', book: 'business' }, { id: 'x', book: 'both' }, { id: 'old' }]
+    .filter((c) => categoryFits(c, book)).map((c) => c.id);
+  expect(offered('personal')).toEqual(['p', 'x', 'old']);
+  expect(offered('business')).toEqual(['b', 'x', 'old']);
+});
 
 const gcash = { id: 'gcash', opening_balance_cents: 500000 };
 const cash = { id: 'cash', opening_balance_cents: 100000 };

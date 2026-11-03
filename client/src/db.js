@@ -20,3 +20,15 @@ db.version(2).upgrade(async (tx) => {
     await tx.table(table).toCollection().modify((row) => { row.book ??= 'personal'; });
   }
 });
+
+// v4: categories say which book they are offered in: 'personal', 'business' or 'both'.
+// The existing ones (Food, Transport…) are personal. Marked dirty with a fresh updated_at so the change syncs.
+db.version(4).upgrade((tx) => {
+  const now = new Date().toISOString();
+  return tx.table('categories').toCollection().modify((row) => {
+    if (row.book && row.book !== 'both') return;
+    row.book = 'personal';
+    row.updated_at = now;
+    row.dirty = 1;
+  });
+});

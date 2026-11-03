@@ -4,10 +4,26 @@ import { db } from '../db';
 import { save, softDelete } from '../repo';
 import Sheet from '../components/Sheet';
 import Icon from '../components/Icon';
+import BookFilter, { BookSwitch } from '../components/BookFilter';
+import { categoryFits } from '../reports';
+import { categoryColors } from '../colors';
+import { useBook } from '../settings';
+
+const BOOK_LABEL = { personal: 'Personal', business: 'Business' }; // 'both' shows no tag
 
 export default function Categories() {
+  const view = useBook(); // the All / Personal / Business filter, shared with the other pages
   const [editing, setEditing] = useState(null); // null = closed, {} = new, row = edit
-  const categories = useLiveQuery(() => db.categories.filter((c) => !c.deleted_at).toArray()) ?? [];
+  const [book, setBook] = useState('personal');
+  const all = useLiveQuery(() => db.categories.filter((c) => !c.deleted_at).sortBy('name')) ?? [];
+  const categories = view === 'all' ? all : all.filter((c) => categoryFits(c, view));
+  const colors = categoryColors(all); // same colours as the chart and transaction avatars
+
+  function open(category) {
+    // A new category starts in the book you're looking at.
+    setBook(category.book ?? (view === 'all' ? 'personal' : view));
+    setEditing(category);
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -18,6 +34,7 @@ export default function Categories() {
       name: f.get('name').trim(),
       type: f.get('type'),
       color: f.get('color'),
+      book,
     });
     setEditing(null);
   }
@@ -31,10 +48,11 @@ export default function Categories() {
     <section className="group" key={type}>
       <h2>{type}</h2>
       {categories.filter((c) => c.type === type).map((c) => (
-        <button type="button" key={c.id} className="row" onClick={() => setEditing(c)}>
+        <button type="button" key={c.id} className="row" onClick={() => open(c)}>
           <span className="row-main">
-            <span><i className="swatch" style={{ background: c.color ?? '#9ca3af' }} />{c.name}</span>
+            <span><i className="swatch" style={{ background: colors[c.id] }} />{c.name}</span>
           </span>
+          {BOOK_LABEL[c.book] && <span className={`badge ${c.book}`}>{BOOK_LABEL[c.book]}</span>}
         </button>
       ))}
     </section>
@@ -43,11 +61,13 @@ export default function Categories() {
   return (
     <>
       <header className="month-bar"><h1>Categories</h1></header>
+      <BookFilter />
+      <p className="hint">A Business category is only offered for business transactions, a Personal one only for personal. "Both" is offered in either.</p>
 
       {group('expense')}
       {group('income')}
 
-      <button type="button" className="fab" onClick={() => setEditing({})} aria-label="Add category"><Icon name="plus" size={26} /></button>
+      <button type="button" className="fab" onClick={() => open({})} aria-label="Add category"><Icon name="plus" size={26} /></button>
 
       {editing && (
         <Sheet onClose={() => setEditing(null)}>
@@ -63,6 +83,10 @@ export default function Categories() {
                 <option value="expense">Expense</option>
                 <option value="income">Income</option>
               </select>
+            </label>
+            <label>
+              Used for
+              <BookSwitch value={book} onChange={setBook} both />
             </label>
             <label>
               Color

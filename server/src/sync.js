@@ -28,6 +28,7 @@ const SCHEMAS = {
     type: z.enum(['income', 'expense']),
     icon: z.string().nullish(),
     color: z.string().nullish(),
+    book: z.enum(['personal', 'business', 'both']).default('both'),
   }),
   budgets: z.object({
     ...base,

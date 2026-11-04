@@ -318,11 +318,11 @@ Manual checklist:
 - [x] Phase 1 — Database schema
 - [x] Phase 2 — Auth API
 - [x] Phase 3 — Local database + transactions
-- [ ] Phase 4 — Accounts, categories, transfers
-- [ ] Phase 5 — PWA install + offline
-- [ ] Phase 6 — Sync engine
-- [ ] Phase 7 — Dashboard, budgets, charts
-- [ ] Phase 8 — Recurring, export, settings
+- [x] Phase 4 — Accounts, categories, transfers
+- [x] Phase 5 — PWA install + offline
+- [x] Phase 6 — Sync engine
+- [x] Phase 7 — Dashboard, budgets, charts
+- [x] Phase 8 — Recurring, export, settings
 - [ ] Phase 9 — Testing
 - [ ] Phase 10 — Deploy and install
 

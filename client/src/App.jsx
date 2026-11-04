@@ -3,7 +3,7 @@ import { BrowserRouter, NavLink, Route, Routes, useLocation } from 'react-router
 import { seedDefaults } from './repo';
 import { runRecurring } from './recurring';
 import { startSync } from './sync';
-import { useSetting } from './settings';
+import { useTheme } from './settings';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Budgets from './pages/Budgets';
@@ -60,7 +60,7 @@ function Shell() {
 }
 
 export default function App() {
-  const theme = useSetting('theme', 'system');
+  const theme = useTheme();
 
   useEffect(() => {
     seedDefaults().then(runRecurring);
@@ -69,6 +69,11 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme === 'system' ? '' : theme;
+    try {
+      localStorage.setItem('theme', theme);
+    } catch {
+      // Storage can be blocked; the theme then just loads a moment later.
+    }
   }, [theme]);
 
   return (

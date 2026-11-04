@@ -7,6 +7,13 @@
     <meta name="theme-color" content="#2563eb" />
     <link rel="apple-touch-icon" href="/pwa-192.png" />
     <title>Budget Tracker</title>
+    <script>
+      // Apply the saved theme before the first paint (see settings.js).
+      try {
+        var theme = localStorage.getItem('theme');
+        if (theme && theme !== 'system') document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

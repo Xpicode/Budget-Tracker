@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../db';
-import { useSetting, setSetting } from '../settings';
+import { useSetting, setSetting, useTheme } from '../settings';
 import { centsToInput } from '../money';
 import { today, period } from '../dates';
 import { toCsv, downloadCsv } from '../csv';
 import Account from './Account';
 
+const THEMES = [['light', 'Light'], ['dark', 'Dark'], ['system', 'Auto']];
+
 export default function Settings() {
   const budgetStart = useSetting('budget_start', 1);
-  const theme = useSetting('theme', 'system');
+  const theme = useTheme();
   const thisMonth = period(today().slice(0, 7));
   const [range, setRange] = useState({ from: thisMonth.from, to: today() });
 
@@ -31,6 +33,19 @@ export default function Settings() {
     <>
       <header className="month-bar"><h1>Settings</h1></header>
 
+      <h2 className="section">Appearance</h2>
+      <section className="card">
+        <div className="type-toggle" role="group" aria-label="Theme">
+          {THEMES.map(([value, label]) => (
+            <button type="button" key={value} className={value === theme ? 'active' : ''} aria-pressed={value === theme}
+              onClick={() => setSetting('theme', value)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="hint">Auto follows your device's light or dark setting.</p>
+      </section>
+
       <h2 className="section">Account</h2>
       <Account />
 
@@ -40,14 +55,6 @@ export default function Settings() {
           Budget month starts on day
           <select value={budgetStart} onChange={(e) => setSetting('budget_start', Number(e.target.value))}>
             {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-        </label>
-        <label>
-          Theme
-          <select value={theme} onChange={(e) => setSetting('theme', e.target.value)}>
-            <option value="system">Match device</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
           </select>
         </label>
       </section>

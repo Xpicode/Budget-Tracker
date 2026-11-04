@@ -121,8 +121,8 @@ nav a.active .nav-icon { background: var(--accent-soft); }
 nav a:active .nav-icon { transform: scale(0.9); }
 
 @media (min-width: 600px) {
-  .shell { display: grid; grid-template-columns: 236px 1fr; }
-  main { width: 100%; max-width: 720px; padding: 40px 32px 120px; }
+  .shell { display: grid; grid-template-columns: 236px minmax(0, 1fr); } /* minmax(0, …): content can never widen the page */
+  main { width: 100%; max-width: 720px; padding: 40px clamp(16px, 3vw, 32px) 120px; }
   nav {
     position: sticky;
     top: 0;
@@ -130,6 +130,7 @@ nav a:active .nav-icon { transform: scale(0.9); }
     right: auto;
     bottom: auto;
     height: 100dvh;
+    overflow-y: auto; /* a landscape phone is shorter than the menu */
     flex-direction: column;
     align-items: stretch;
     gap: 2px;
@@ -641,4 +642,22 @@ button.link:hover { background: none; text-decoration: underline; }
     transition-duration: 0.01ms !important;
     transition-delay: 0s !important;
   }
+}
+
+/* Amounts of a million pesos and up (see Money.jsx), so they fit their cards on narrow phones */
+.hero-amount.long { font-size: clamp(30px, 9.5vw, 46px); }
+.hero-split .money.long,
+.totals .money.long,
+.row > .money.long { font-size: 13px; }
+.totals.one .money.long { font-size: 24px; }
+
+/* Equal tab widths, and labels that shrink a little on the narrowest phones so they never touch */
+nav a,
+nav .sync { flex: 1 1 0; min-width: 0; font-size: clamp(9.5px, 2.8vw, 11px); }
+.nav-icon { max-width: 100%; }
+@media (min-width: 600px) {
+  nav { scrollbar-width: thin; }
+  nav a,
+  nav a.secondary { flex: 0 0 auto; font-size: 14px; }
+  nav .sync { flex: 0 0 auto; font-size: 13px; }
 }

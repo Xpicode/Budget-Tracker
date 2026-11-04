@@ -33,8 +33,9 @@ function useCountUp(target, enabled) {
 export default function Money({ cents, sign = '', animate = false, className = '' }) {
   const value = Math.round(useCountUp(cents, animate));
   const abs = Math.abs(value);
+  // A million pesos and up gets a smaller size so it still fits its card on narrow phones.
   return (
-    <span className={`money ${className}`}>
+    <span className={`money ${abs >= 100000000 ? 'long' : ''} ${className}`}>
       {sign || (value < 0 ? '−' : '')}
       <span className="cur">₱</span>
       {Math.floor(abs / 100).toLocaleString('en-PH')}

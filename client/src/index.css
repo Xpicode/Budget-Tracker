@@ -528,6 +528,62 @@ button.link:hover { background: none; text-decoration: underline; }
   font-weight: 600;
 }
 
+/* Select mode on Transactions: tick circles in the rows, action bar where the + button was */
+.list-tools { display: flex; justify-content: flex-end; margin: -6px 0 2px; }
+.list-tools button { padding: 8px 6px; font-weight: 600; }
+.check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+}
+.check .icon {
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border: 2px solid var(--muted);
+  border-radius: 50%;
+  color: transparent;
+  stroke-width: 3;
+}
+.row.picked { background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+.row.picked .check .icon { background: var(--accent); border-color: var(--accent); color: #fff; }
+.select-bar {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(var(--nav) + 28px + var(--safe-bottom));
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  max-width: 420px;
+  margin-inline: auto;
+  padding: 8px;
+  background: var(--toast);
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: var(--shadow-lg);
+}
+.select-bar span { font-size: 14px; font-weight: 600; white-space: nowrap; }
+.select-bar button {
+  min-height: 40px;
+  padding: 6px 16px;
+  background: oklch(1 0 0 / 0.12);
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 600;
+}
+.select-bar .danger { background: oklch(0.55 0.21 25); }
+.select-bar .danger:disabled { opacity: 0.45; cursor: default; }
+@media (min-width: 600px) {
+  .select-bar { left: calc(236px + 16px); bottom: 32px; }
+}
+
 /* Sync status: a tab-bar item on phones (dot + short label), a footer line in the sidebar */
 .sync {
   flex: 1;
@@ -611,7 +667,7 @@ button.link:hover { background: none; text-decoration: underline; }
 @keyframes pulse { 50% { opacity: 0.45; transform: scale(1.5); } }
 
 /* Each page's blocks rise in one after another. backwards fill: no transform lingers afterwards. */
-.page > :not(dialog, .fab, .toast) { animation: rise 0.45s var(--ease-out) backwards; }
+.page > :not(dialog, .fab, .toast, .select-bar) { animation: rise 0.45s var(--ease-out) backwards; }
 .page > :nth-child(2) { animation-delay: 50ms; }
 .page > :nth-child(3) { animation-delay: 100ms; }
 .page > :nth-child(4) { animation-delay: 150ms; }

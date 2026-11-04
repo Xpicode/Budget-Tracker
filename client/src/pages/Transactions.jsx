@@ -17,7 +17,8 @@ export default function Transactions() {
   const book = useBook();
   const [offset, setOffset] = useState(0);      // months away from the current budget period
   const [editing, setEditing] = useState(null); // null = form closed, {} = new, row = edit
-  const [undo, setUndo] = useState(null);       // last deleted row, shown in the toast
+  const [undo, setUndo] = useState(null);       // rows just deleted, shown in the toast
+  const [picked, setPicked] = useState(null);   // null = normal list, Set of ids = select mode
 
   const month = shiftMonth(currentMonth(today(), startDay), offset);
   const { from, to } = period(month, startDay);
@@ -40,22 +41,42 @@ export default function Transactions() {
   const categoryName = Object.fromEntries(categories.map((c) => [c.id, c.name]));
   const categoryColor = categoryColors(categories);
   const accountName = Object.fromEntries(accounts.map((a) => [a.id, a.name]));
+  // Only rows on screen count, so changing the month or book can never delete something you can't see.
+  const chosen = picked ? rows.filter((t) => picked.has(t.id)) : [];
+  const allChosen = rows.length > 0 && chosen.length === rows.length;
 
   async function submit(values) {
     await save('transactions', { ...editing, ...values });
     setEditing(null);
   }
 
+  async function removeRows(list) {
+    await Promise.all(list.map((row) => softDelete('transactions', row.id)));
+    setUndo(list);
+    setTimeout(() => setUndo((u) => (u === list ? null : u)), 5000);
+  }
+
   async function remove(row) {
-    await softDelete('transactions', row.id);
+    await removeRows([row]);
     setEditing(null);
-    setUndo(row);
-    setTimeout(() => setUndo((u) => (u?.id === row.id ? null : u)), 5000);
+  }
+
+  async function removeChosen() {
+    const n = chosen.length;
+    if (!window.confirm(`Delete ${n} transaction${n === 1 ? '' : 's'}?`)) return;
+    await removeRows(chosen);
+    setPicked(null);
   }
 
   async function undoDelete() {
-    await save('transactions', { ...undo, deleted_at: null });
+    await Promise.all(undo.map((row) => save('transactions', { ...row, deleted_at: null })));
     setUndo(null);
+  }
+
+  function togglePicked(id) {
+    const next = new Set(picked);
+    if (!next.delete(id)) next.add(id);
+    setPicked(next);
   }
 
   return (
@@ -76,14 +97,28 @@ export default function Transactions() {
 
       {rows.length === 0 && <p className="empty">Nothing recorded this month. Press + to add an expense or income.</p>}
 
+      {rows.length > 0 && (
+        <div className="list-tools">
+          <button type="button" className="link"
+            onClick={() => setPicked(!picked ? new Set() : new Set(allChosen ? [] : rows.map((t) => t.id)))}>
+            {!picked ? 'Select' : allChosen ? 'Clear' : 'Select all'}
+          </button>
+        </div>
+      )}
+
       {Object.entries(byDay).map(([day, list]) => (
         <section key={day} className="group">
           <h2>{formatDay(day)}</h2>
           {list.map((t) => (
-            <button type="button" key={t.id} className="row" onClick={() => setEditing(t)}>
-              <span className="avatar" style={{ '--c': categoryColor[t.category_id] ?? 'var(--accent)' }}>
-                {t.type === 'transfer' ? <Icon name="transfer" size={18} /> : (categoryName[t.category_id] ?? '?').slice(0, 1)}
-              </span>
+            <button type="button" key={t.id} className={picked?.has(t.id) ? 'row picked' : 'row'} aria-pressed={picked ? picked.has(t.id) : undefined}
+              onClick={() => (picked ? togglePicked(t.id) : setEditing(t))}>
+              {picked ? (
+                <span className="check"><Icon name="check" size={18} /></span>
+              ) : (
+                <span className="avatar" style={{ '--c': categoryColor[t.category_id] ?? 'var(--accent)' }}>
+                  {t.type === 'transfer' ? <Icon name="transfer" size={18} /> : (categoryName[t.category_id] ?? '?').slice(0, 1)}
+                </span>
+              )}
               <span className="row-main">
                 <span>
                   {t.type === 'transfer'
@@ -101,7 +136,15 @@ export default function Transactions() {
         </section>
       ))}
 
-      <button type="button" className="fab" onClick={() => setEditing({})} aria-label="Add transaction"><Icon name="plus" size={26} /></button>
+      {picked ? (
+        <div className="select-bar">
+          <button type="button" onClick={() => setPicked(null)}>Cancel</button>
+          <span role="status">{chosen.length} selected</span>
+          <button type="button" className="danger" disabled={chosen.length === 0} onClick={removeChosen}>Delete</button>
+        </div>
+      ) : (
+        <button type="button" className="fab" onClick={() => setEditing({})} aria-label="Add transaction"><Icon name="plus" size={26} /></button>
+      )}
 
       {editing && (
         <TransactionForm
@@ -117,7 +160,7 @@ export default function Transactions() {
 
       {undo && (
         <div className="toast" role="status">
-          Deleted <button type="button" onClick={undoDelete}>Undo</button>
+          {undo.length > 1 ? `${undo.length} deleted` : 'Deleted'} <button type="button" onClick={undoDelete}>Undo</button>
         </div>
       )}
     </>

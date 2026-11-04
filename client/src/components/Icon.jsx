@@ -11,6 +11,7 @@ const PATHS = {
   left: <path d="M15 6l-6 6 6 6" />,
   right: <path d="M9 6l6 6-6 6" />,
   transfer: <path d="M5 8h13l-3-3M19 16H6l3 3" />,
+  check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
 };
 
 export default function Icon({ name, size = 22 }) {

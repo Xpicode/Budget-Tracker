@@ -1,0 +1,9 @@
+{
+  "appId": "com.xpicode.budgettracker",
+  "appName": "Budget Tracker",
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": { "enabled": true },
+    "CapacitorCookies": { "enabled": true }
+  }
+}

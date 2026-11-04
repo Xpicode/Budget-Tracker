@@ -3,10 +3,12 @@ import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
+      // The Android app already has its files inside the APK, so `vite build --mode android` skips the service worker.
+      disable: mode === 'android',
       // 'prompt' lets the app show an "Update available" toast; 'autoUpdate' would reload silently.
       registerType: 'prompt',
       includeAssets: ['favicon.svg'],
@@ -38,4 +40,4 @@ export default defineConfig({
       '/api': 'http://localhost:4000',
     },
   },
-})
+}))

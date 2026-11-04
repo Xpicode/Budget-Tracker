@@ -17,6 +17,21 @@ cd client; npm install; npm run dev                     # app on http://localhos
 
 Tests: `npm test` in `client/` (unit tests) and in `server/` (API tests; they create and use a separate `budget_test` database).
 
+## Build the Android app (APK)
+
+Needs JDK 21 and the Android SDK (platform 36, build-tools 36). Set `JAVA_HOME` and `ANDROID_HOME` first.
+
+```powershell
+cd client
+$env:VITE_API_URL = 'https://budget.example.com'   # your server; leave this out for an offline-only build
+npm run build:android
+cd android; .\gradlew.bat assembleRelease
+```
+
+The signed file is `client/android/app/build/outputs/apk/release/app-release.apk`. To install it, copy it to an Android phone, open it, and allow installs from this source when asked. Google Play is not needed.
+
+**Signing:** `client/android/keystore.properties` (git-ignored) points to the key. Back up the key and that file. If they are lost, phones can't update the app and would have to uninstall it, which erases anything not yet synced. Raise `versionCode` in `client/android/app/build.gradle` for every new APK.
+
 ## Deploy to your own server
 
 Any Linux machine or Proxmox VM/LXC with Docker. HTTPS comes from a Cloudflare Tunnel, so no ports need to be opened on your router.

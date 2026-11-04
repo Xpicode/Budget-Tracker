@@ -325,5 +325,6 @@ Manual checklist:
 - [x] Phase 8 — Recurring, export, settings
 - [ ] Phase 9 — Testing
 - [ ] Phase 10 — Deploy and install
+- [ ] Phase 11 — Android APK (Capacitor; signed APK built, not yet run on a phone)
 
-After v1: a real Android APK by wrapping the same React build with Capacitor, receipt photos, shared household budgets, TypeScript migration.
+After v1: receipt photos, shared household budgets, TypeScript migration.

@@ -3,3 +3,4 @@
 .env
 .git
 backups
+client/android

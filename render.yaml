@@ -1,0 +1,15 @@
+# Render blueprint: the app on Render's free plan, using the Dockerfile in this repo.
+# The database is hosted on Neon. Render asks for DATABASE_URL when the blueprint is created.
+services:
+  - type: web
+    name: budget-tracker
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false

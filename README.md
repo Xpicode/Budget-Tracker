@@ -32,6 +32,18 @@ The signed file is `client/android/app/build/outputs/apk/release/app-release.apk
 
 **Signing:** `client/android/keystore.properties` (git-ignored) points to the key. Back up the key and that file. If they are lost, phones can't update the app and would have to uninstall it, which erases anything not yet synced. Raise `versionCode` in `client/android/app/build.gradle` for every new APK.
 
+## Deploy for free (Render + Neon)
+
+The app runs on Render's free plan and the database on Neon's free plan. HTTPS and the address come with Render, so no domain is needed.
+
+1. **Database:** at neon.com, create a project in the Singapore region. Copy the connection string.
+2. **App:** at render.com, sign in with GitHub. Choose **New → Blueprint**, pick this repo, and paste the connection string as `DATABASE_URL`. `render.yaml` sets up the rest, and the app applies migrations each time it starts.
+3. **Check:** open `https://<your-app>.onrender.com/api/health`. It should show `{"ok":true}`.
+
+Every push to `main` deploys automatically.
+
+Limits of the free plans: the server sleeps after 15 idle minutes and takes about a minute to wake, which only delays syncing because the app saves on the phone first. Neon's free plan gives 1 GB of storage and only a short restore window, and the nightly `backup` service below doesn't run here, so export a CSV now and then. Anyone with the address can create an account; each account only sees its own data.
+
 ## Deploy to your own server
 
 Any Linux machine or Proxmox VM/LXC with Docker. HTTPS comes from a Cloudflare Tunnel, so no ports need to be opened on your router.

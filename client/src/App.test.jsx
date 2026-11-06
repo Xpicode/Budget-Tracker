@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
 import { LoginGate } from './App';
+import Account from './pages/Account';
 
 vi.mock('dexie-react-hooks', () => ({ useLiveQuery: vi.fn() }));
 vi.mock('./db', () => ({ db: { meta: { get: vi.fn() } } }));
@@ -31,7 +32,16 @@ test.each(['/', '/transactions', '/budgets', '/settings'])('signed-out visitors 
   const html = renderGate(path);
   expect(html).toContain('Log in to access your budget.');
   expect(html).toContain('type="password"');
+  expect(html).toContain('Forgot password?');
   expect(html).not.toContain('Private budget content');
+});
+
+test('signed-in Settings exposes a current-password-protected change form', () => {
+  useLiveQuery.mockReturnValue({ value: { id: 'owner', email: 'owner@example.com' } });
+  const html = renderToStaticMarkup(<MemoryRouter><Account /></MemoryRouter>);
+  expect(html).toContain('Change password');
+  expect(html).toContain('name="current_password"');
+  expect(html).toContain('name="confirmation"');
 });
 
 test('a saved login permits local access without a network request', () => {

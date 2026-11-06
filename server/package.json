@@ -6,7 +6,9 @@
     "test": "node --env-file=../.env node_modules/vitest/vitest.mjs run",
     "dev": "node --env-file=../.env --watch src/index.js",
     "start": "node --env-file=../.env src/index.js",
-    "migrate": "node --env-file=../.env src/migrate.js"
+    "migrate": "node --env-file=../.env src/migrate.js",
+    "reset-password": "node --env-file-if-exists=../.env src/reset-password.js",
+    "recovery-code": "node --env-file-if-exists=../.env src/reset-password.js --recovery-code"
   },
   "keywords": [],
   "author": "",

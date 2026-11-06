@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { pool } from './db.js';
+import { createHash } from 'node:crypto';
 
 // One rule for both register and login. parse() throws a ZodError on bad input,
 // which the central error handler in index.js turns into a 400.
@@ -19,6 +20,39 @@ const cookieOptions = {
 };
 
 export const auth = Router();
+
+const newPassword = z.string().min(8).refine((value) => Buffer.byteLength(value, 'utf8') <= 72, 'Password must be at most 72 UTF-8 bytes');
+
+auth.post('/reset-password', async (req, res) => {
+  const { email, recovery_code, password } = z.object({
+    email: z.email().toLowerCase(),
+    recovery_code: z.string().regex(/^[a-f0-9]{64}$/),
+    password: newPassword,
+  }).parse(req.body);
+  const hash = createHash('sha256').update(recovery_code).digest('hex');
+  const { rows } = await pool.query('select id from users where email = $1 and recovery_code_hash = $2', [email, hash]);
+  if (!rows.length) return res.status(400).json({ error: 'Invalid email or recovery code' });
+  const password_hash = await bcrypt.hash(password, 10);
+  // Consume the code atomically, including when requests arrive simultaneously.
+  const result = await pool.query(
+    'update users set password_hash = $1, recovery_code_hash = null where id = $2 and recovery_code_hash = $3',
+    [password_hash, rows[0].id, hash],
+  );
+  if (!result.rowCount) return res.status(400).json({ error: 'Invalid email or recovery code' });
+  res.json({ ok: true });
+});
+
+auth.post('/change-password', requireAuth, async (req, res) => {
+  const { current_password, password } = z.object({ current_password: z.string().min(8), password: newPassword }).parse(req.body);
+  const { rows } = await pool.query('select password_hash from users where id = $1', [req.userId]);
+  if (!rows.length || !(await bcrypt.compare(current_password, rows[0].password_hash))) {
+    return res.status(401).json({ error: 'Current password is incorrect' });
+  }
+  const password_hash = await bcrypt.hash(password, 10);
+  const result = await pool.query('update users set password_hash = $1 where id = $2 and password_hash = $3', [password_hash, req.userId, rows[0].password_hash]);
+  if (!result.rowCount) return res.status(409).json({ error: 'Password changed. Please try again.' });
+  res.json({ ok: true });
+});
 
 auth.post('/register', async (req, res) => {
   const { email, password } = credentials.parse(req.body);

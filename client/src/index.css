@@ -73,6 +73,17 @@ h1, h2, p { margin: 0; }
 .income { color: var(--income); }
 .expense { color: var(--expense); }
 
+.login-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  width: 100%;
+  padding: calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bottom));
+}
+.login-panel { width: 100%; max-width: 400px; }
+.login-panel header { margin-bottom: 24px; }
+.login-panel header p { margin-top: 8px; color: var(--muted); }
+
 /* ---------- Shell: floating tab bar on phones, sidebar from 600px ---------- */
 main {
   max-width: 640px;

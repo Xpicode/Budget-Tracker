@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from './db';
 import { seedDefaults } from './repo';
 import { runRecurring } from './recurring';
 import { startSync } from './sync';
@@ -11,6 +13,7 @@ import Accounts from './pages/Accounts';
 import Categories from './pages/Categories';
 import Recurring from './pages/Recurring';
 import Settings from './pages/Settings';
+import Account from './pages/Account';
 import SyncStatus from './components/SyncStatus';
 import UpdateToast from './components/UpdateToast';
 import Icon from './components/Icon';
@@ -28,6 +31,11 @@ const LINKS = [
 
 function Shell() {
   const { pathname } = useLocation();
+  useEffect(() => {
+    seedDefaults().then(runRecurring);
+    return startSync();
+  }, []);
+
   return (
     <div className="shell">
       <nav>
@@ -59,13 +67,31 @@ function Shell() {
   );
 }
 
+export function LoginGate({ children }) {
+  // null means signed out; undefined means IndexedDB has not finished loading.
+  const user = useLiveQuery(async () => (await db.meta.get('user'))?.value ?? null);
+  if (user === undefined) {
+    return <main className="login-screen"><p role="status">Loading your account...</p></main>;
+  }
+  // A saved login allows previously signed-in devices to keep working offline.
+  if (!user) {
+    return (
+      <main className="login-screen">
+        <div className="login-panel">
+          <header>
+            <h1>Budget Tracker</h1>
+            <p>Log in to access your budget.</p>
+          </header>
+          <Account />
+        </div>
+      </main>
+    );
+  }
+  return children;
+}
+
 export default function App() {
   const theme = useTheme();
-
-  useEffect(() => {
-    seedDefaults().then(runRecurring);
-    return startSync();
-  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme === 'system' ? '' : theme;
@@ -78,7 +104,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Shell />
+      <LoginGate><Shell /></LoginGate>
     </BrowserRouter>
   );
 }

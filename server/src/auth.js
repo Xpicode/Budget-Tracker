@@ -22,12 +22,29 @@ export const auth = Router();
 
 auth.post('/register', async (req, res) => {
   const { email, password } = credentials.parse(req.body);
-  const password_hash = await bcrypt.hash(password, 10);
-  const { rows } = await pool.query(
-    'insert into users (email, password_hash) values ($1, $2) returning id, email',
-    [email, password_hash],
-  );
-  res.status(201).json(rows[0]);
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    // Serialize registrations so simultaneous requests cannot create extra accounts.
+    await client.query('lock table users in share row exclusive mode');
+    const existing = await client.query('select 1 from users limit 1');
+    if (existing.rowCount) {
+      await client.query('rollback');
+      return res.status(403).json({ error: 'Registration is closed. Please log in with your existing account.' });
+    }
+    const password_hash = await bcrypt.hash(password, 10);
+    const { rows } = await client.query(
+      'insert into users (email, password_hash) values ($1, $2) returning id, email',
+      [email, password_hash],
+    );
+    await client.query('commit');
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    await client.query('rollback');
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
 auth.post('/login', async (req, res) => {

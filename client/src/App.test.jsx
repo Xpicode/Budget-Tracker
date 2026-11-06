@@ -1,0 +1,51 @@
+import { beforeEach, expect, test, vi } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from './db';
+import { LoginGate } from './App';
+
+vi.mock('dexie-react-hooks', () => ({ useLiveQuery: vi.fn() }));
+vi.mock('./db', () => ({ db: { meta: { get: vi.fn() } } }));
+vi.mock('./components/UpdateToast', () => ({ default: () => null }));
+
+beforeEach(() => vi.clearAllMocks());
+
+function renderGate(path = '/') {
+  return renderToStaticMarkup(
+    <MemoryRouter initialEntries={[path]}>
+      <LoginGate><div>Private budget content</div></LoginGate>
+    </MemoryRouter>,
+  );
+}
+
+test('loading the saved account never flashes private content', () => {
+  useLiveQuery.mockReturnValue(undefined);
+  const html = renderGate();
+  expect(html).toContain('Loading your account...');
+  expect(html).not.toContain('Private budget content');
+});
+
+test.each(['/', '/transactions', '/budgets', '/settings'])('signed-out visitors see login at %s', (path) => {
+  useLiveQuery.mockReturnValue(null);
+  const html = renderGate(path);
+  expect(html).toContain('Log in to access your budget.');
+  expect(html).toContain('type="password"');
+  expect(html).not.toContain('Private budget content');
+});
+
+test('a saved login permits local access without a network request', () => {
+  useLiveQuery.mockReturnValue({ id: 'owner', email: 'owner@example.com' });
+  expect(renderGate('/transactions')).toContain('Private budget content');
+});
+
+test('the local account query distinguishes signed-out from loading', async () => {
+  useLiveQuery.mockReturnValue(undefined);
+  renderGate();
+  const query = useLiveQuery.mock.calls[0][0];
+  db.meta.get.mockResolvedValue(undefined);
+  expect(await query()).toBeNull();
+  const user = { id: 'owner' };
+  db.meta.get.mockResolvedValue({ key: 'user', value: user });
+  expect(await query()).toEqual(user);
+});

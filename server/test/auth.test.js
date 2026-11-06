@@ -1,14 +1,27 @@
-import { test, expect } from 'vitest';
+import { test, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app.js';
+import { pool } from '../src/db.js';
 
 const email = `auth-${Date.now()}@test.com`;
 const password = 'password123';
 
-test('register -> login -> me works; me without the cookie is 401', async () => {
+beforeAll(async () => {
+  // Other test files may have already created users in the isolated test database.
+  await pool.query('truncate users cascade');
+});
+
+test('simultaneous first sign-ups create only one account; login and me still work', async () => {
+  const registrations = await Promise.all([
+    request(app).post('/api/auth/register').send({ email: email.toUpperCase(), password }),
+    request(app).post('/api/auth/register').send({ email: email.toUpperCase(), password }),
+  ]);
+  expect(registrations.map((r) => r.status).sort()).toEqual([201, 403]);
+  const reg = registrations.find((r) => r.status === 201);
+  expect(reg.body).toEqual({ id: expect.any(String), email });
+  const { rows } = await pool.query('select count(*) as count from users');
+  expect(rows[0].count).toBe(1);
   const agent = request.agent(app); // keeps the cookie between requests, like a browser
-  const reg = await agent.post('/api/auth/register').send({ email: email.toUpperCase(), password }).expect(201);
-  expect(reg.body).toEqual({ id: expect.any(String), email }); // lowercased, no hash in the response
 
   const login = await agent.post('/api/auth/login').send({ email, password }).expect(200);
   expect(login.headers['set-cookie'][0]).toMatch(/^token=.*HttpOnly.*SameSite=Strict/);
@@ -19,8 +32,16 @@ test('register -> login -> me works; me without the cookie is 401', async () => 
   await request(app).get('/api/auth/me').expect(401);
 });
 
-test('duplicate email is 409, wrong password is 401, bad input is 400', async () => {
-  await request(app).post('/api/auth/register').send({ email, password }).expect(409);
+test('registration closes for both new and existing emails after the first account', async () => {
+  for (const address of [email, `stranger-${Date.now()}@test.com`]) {
+    const closed = await request(app).post('/api/auth/register').send({ email: address, password }).expect(403);
+    expect(closed.body).toEqual({ error: 'Registration is closed. Please log in with your existing account.' });
+  }
+  const { rows } = await pool.query('select count(*) as count from users');
+  expect(rows[0].count).toBe(1);
+});
+
+test('wrong password is 401 and bad input is 400', async () => {
   const wrong = await request(app).post('/api/auth/login').send({ email, password: 'wrongpass1' }).expect(401);
   expect(wrong.body).toEqual({ error: 'Invalid email or password' });
   const bad = await request(app).post('/api/auth/register').send({ email: 'nope', password: 'short' }).expect(400);

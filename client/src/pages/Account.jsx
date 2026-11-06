@@ -85,7 +85,7 @@ export default function Account() {
       <button type="button" className="link" onClick={() => { setMode(isLogin ? 'register' : 'login'); setError(''); }}>
         {isLogin ? 'No account yet? Create one' : 'Have an account? Log in'}
       </button>
-      <p className="hint">Your data stays on this device. Logging in backs it up and syncs it to other devices.</p>
+      <p className="hint">Log in online once on this device. You can then use your budget offline until you log out.</p>
     </form>
   );
 }

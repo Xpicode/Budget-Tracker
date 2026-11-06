@@ -1,13 +1,16 @@
 import { describe, test, expect, beforeAll } from 'vitest';
 import request from 'supertest';
+import bcrypt from 'bcryptjs';
 import { app } from '../src/app.js';
+import { pool } from '../src/db.js';
 
 const T0 = '2026-10-13T01:00:00.000Z';
 const password = 'password123';
 
 async function login(email) {
   const agent = request.agent(app);
-  await agent.post('/api/auth/register').send({ email, password }).expect(201);
+  // Seed existing users directly: public registration is first-account-only.
+  await pool.query('insert into users (email, password_hash) values ($1, $2)', [email, await bcrypt.hash(password, 10)]);
   await agent.post('/api/auth/login').send({ email, password }).expect(200);
   return agent;
 }

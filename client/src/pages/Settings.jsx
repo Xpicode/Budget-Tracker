@@ -74,6 +74,7 @@ export default function Settings() {
         <Link to="/accounts" className="row">Accounts</Link>
         <Link to="/categories" className="row">Categories</Link>
         <Link to="/recurring" className="row">Recurring rules</Link>
+        <Link to="/trash" className="row">Trash: restore deleted transactions</Link>
       </section>
     </>
   );

@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { totals, balances, spendingByCategory, monthlyExpenses, budgetProgress, inBook, categoryFits, accountFits } from './reports';
+import { totals, balances, spendingByCategory, monthlyExpenses, budgetProgress, inBook, categoryFits, accountFits, filterTransactions } from './reports';
 
 test('accountFits: an account is in its own book, "both" in either, no book means personal; All shows every one', () => {
   const list = [{ id: 'p', book: 'personal' }, { id: 'b', book: 'business' }, { id: 'x', book: 'both' }, { id: 'old' }];
@@ -89,4 +89,21 @@ test('budgetProgress levels: ok < 80%, warn 80–100%, over > 100% (by centavos,
   expect(budgetProgress([budget], spend(100000))[0].level).toBe('warn');
   expect(budgetProgress([budget], spend(100001))[0].level).toBe('over');
   expect(budgetProgress([budget], rows)[0]).toMatchObject({ spent: 350000, pct: 350, level: 'over' });
+});
+
+test('search matches notes, historical category names, and exact centavo amounts', () => {
+  const list = [{ id: 'a', note: 'Lunch with team', category_id: food, amount_cents: 15075 }, { id: 'b', note: null, amount_cents: 15000 }, { id: 'c', note: 'Lunch', deleted_at: 'x' }];
+  const cats = [{ id: food, name: 'Food', deleted_at: 'x' }];
+  expect(filterTransactions(list, { search: ' TEAM ' }, cats).map((t) => t.id)).toEqual(['a']);
+  expect(filterTransactions(list, { search: 'food' }, cats).map((t) => t.id)).toEqual(['a']);
+  expect(filterTransactions(list, { search: '150.75' }).map((t) => t.id)).toEqual(['a']);
+  expect(filterTransactions(list, { search: '150' }).map((t) => t.id)).toEqual(['b']);
+  expect(filterTransactions(list, { search: '1.234' })).toEqual([]);
+});
+
+test('explicit filters combine and transfers match either account', () => {
+  expect(filterTransactions(rows, { account_id: 'cash', category_id: food, type: 'expense' })).toEqual([rows[1]]);
+  expect(filterTransactions(rows, { account_id: 'cash', type: 'transfer' })).toEqual([rows[3]]);
+  expect(filterTransactions(rows, { account_id: 'gcash', type: 'transfer' })).toEqual([rows[3]]);
+  expect(filterTransactions(rows, { account_id: 'cash', type: 'income' })).toEqual([]);
 });

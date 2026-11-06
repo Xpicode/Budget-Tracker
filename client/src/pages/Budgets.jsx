@@ -8,6 +8,7 @@ import { useSetting } from '../settings';
 import { today, shiftMonth, period, currentMonth, formatMonth } from '../dates';
 import Sheet from '../components/Sheet';
 import Icon from '../components/Icon';
+import BudgetAlerts from '../components/BudgetAlerts';
 
 const STATUS = { ok: '', warn: 'Near limit', over: 'Over budget' };
 
@@ -27,7 +28,8 @@ export default function Budgets() {
     [from, to],
   ) ?? [];
 
-  const progress = Object.fromEntries(budgetProgress(budgets, txns).map((p) => [p.category_id, p]));
+  const summary = budgetProgress(budgets, txns);
+  const progress = Object.fromEntries(summary.map((p) => [p.category_id, p]));
 
   async function submit(e) {
     e.preventDefault();
@@ -61,6 +63,8 @@ export default function Budgets() {
         <button type="button" onClick={() => setOffset(offset + 1)} aria-label="Next month"><Icon name="right" /></button>
       </header>
 
+      <BudgetAlerts progress={summary} categories={categories} month={month} />
+
       <section className="group">
         <h2>Budgets</h2>
         {categories.length === 0 && <p className="empty">Add an expense category first.</p>}
@@ -69,7 +73,7 @@ export default function Budgets() {
           return (
             <button type="button" key={c.id} className="row budget" onClick={() => { setError(''); setEditing({ category: c, budget: budgets.find((b) => b.category_id === c.id) }); }}>
               <span className="row-main">
-                <span>{c.name}{p && STATUS[p.level] && <small className={`status ${p.level}`}> · {STATUS[p.level]}</small>}</span>
+                <span>{c.name}{p && STATUS[p.level] && <small className={`status ${p.level}`}> · {p.spent === p.limit_cents ? 'Limit reached (100%)' : STATUS[p.level]}</small>}</span>
                 {p ? (
                   <>
                     <span className="meter"><span className={`meter-fill ${p.level}`} style={{ width: `${Math.min(p.pct, 100)}%` }} /></span>

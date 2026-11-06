@@ -13,6 +13,7 @@ import Accounts from './pages/Accounts';
 import Categories from './pages/Categories';
 import Recurring from './pages/Recurring';
 import Settings from './pages/Settings';
+import Trash from './pages/Trash';
 import Account from './pages/Account';
 import SyncStatus from './components/SyncStatus';
 import UpdateToast from './components/UpdateToast';
@@ -26,6 +27,7 @@ const LINKS = [
   { to: '/accounts', icon: 'wallet', label: 'Accounts', secondary: true },
   { to: '/categories', icon: 'tag', label: 'Categories', secondary: true },
   { to: '/recurring', icon: 'repeat', label: 'Recurring', secondary: true },
+  { to: '/trash', icon: 'list', label: 'Trash', secondary: true },
   { to: '/settings', icon: 'settings', label: 'Settings' },
 ];
 
@@ -59,6 +61,7 @@ function Shell() {
             <Route path="/categories" element={<Categories />} />
             <Route path="/recurring" element={<Recurring />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/trash" element={<Trash />} />
           </Routes>
         </div>
       </main>

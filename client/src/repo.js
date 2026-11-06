@@ -19,6 +19,12 @@ export const softDelete = (table, id) => {
   return p;
 };
 
+export const restore = (table, id) => {
+  const p = db[table].update(id, { deleted_at: null, updated_at: now(), dirty: 1 });
+  p.then(scheduleSync, () => {});
+  return p;
+};
+
 // [name, type, book]. Business ones are a starter set for a wholesale streetwear shop; rename or delete freely.
 const DEFAULT_CATEGORIES = [
   ['Food', 'expense', 'personal'],

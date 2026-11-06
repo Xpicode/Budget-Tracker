@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
-import { save, softDelete } from '../repo';
-import { totals, inBook } from '../reports';
+import { save, softDelete, restore } from '../repo';
+import { totals, inBook, filterTransactions } from '../reports';
+import { formatPeso } from '../money';
 import BookFilter from '../components/BookFilter';
 import { useBook } from '../settings';
 import { useSetting } from '../settings';
@@ -19,24 +20,28 @@ export default function Transactions() {
   const [editing, setEditing] = useState(null); // null = form closed, {} = new, row = edit
   const [undo, setUndo] = useState(null);       // rows just deleted, shown in the toast
   const [picked, setPicked] = useState(null);   // null = normal list, Set of ids = select mode
+  const [allHistory, setAllHistory] = useState(false);
+  const [filters, setFilters] = useState({ search: '', category_id: '', account_id: '', type: '' });
 
   const month = shiftMonth(currentMonth(today(), startDay), offset);
   const { from, to } = period(month, startDay);
 
   // useLiveQuery re-runs the query whenever the table changes, so the list refreshes itself.
-  const rows = useLiveQuery(async () => {
-    const list = await db.transactions
-      .where('txn_date').between(from, to, true, false)
+  const source = useLiveQuery(async () => {
+    const query = allHistory ? db.transactions.toCollection() : db.transactions.where('txn_date').between(from, to, true, false);
+    const list = await query
       .filter((t) => !t.deleted_at && inBook(t, book))
       .toArray();
     return list.sort((a, b) => b.txn_date.localeCompare(a.txn_date) || b.created_at.localeCompare(a.created_at));
-  }, [from, to, book]) ?? [];
+  }, [from, to, book, allHistory]) ?? [];
   // All categories/accounts for showing names (a deleted one may still be on old rows);
   // only live ones are offered in the form.
   const categories = useLiveQuery(() => db.categories.toArray()) ?? [];
   const accounts = useLiveQuery(() => db.accounts.toArray()) ?? [];
 
-  const { income, expense, net } = totals(rows);
+  const rows = filterTransactions(source, filters, categories);
+  const { income, expense, net } = totals(source.filter((t) => t.txn_date >= from && t.txn_date < to));
+  const matching = totals(rows);
   const byDay = Object.groupBy(rows, (t) => t.txn_date);
   const categoryName = Object.fromEntries(categories.map((c) => [c.id, c.name]));
   const categoryColor = categoryColors(categories);
@@ -69,7 +74,7 @@ export default function Transactions() {
   }
 
   async function undoDelete() {
-    await Promise.all(undo.map((row) => save('transactions', { ...row, deleted_at: null })));
+    await Promise.all(undo.map((row) => restore('transactions', row.id)));
     setUndo(null);
   }
 
@@ -89,13 +94,24 @@ export default function Transactions() {
 
       <BookFilter />
 
+      <section className="card transaction-filters" aria-label="Search and filters">
+        <label>Search transactions<input type="search" placeholder="Note, category, or exact amount" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} /></label>
+        <label>Search scope<select value={allHistory ? 'all' : 'month'} onChange={(e) => setAllHistory(e.target.value === 'all')}><option value="month">Selected budget month</option><option value="all">All history</option></select></label>
+        <label>Category<select value={filters.category_id} onChange={(e) => setFilters({ ...filters, category_id: e.target.value })}><option value="">All categories</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}{c.deleted_at ? ' (deleted)' : ''}</option>)}</select></label>
+        <label>Account<select value={filters.account_id} onChange={(e) => setFilters({ ...filters, account_id: e.target.value })}><option value="">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}{a.deleted_at || a.archived ? ' (archived)' : ''}</option>)}</select></label>
+        <label>Type<select value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })}><option value="">All types</option>{['income', 'expense', 'transfer'].map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
+        <button type="button" className="link" onClick={() => { setFilters({ search: '', category_id: '', account_id: '', type: '' }); setAllHistory(false); setPicked(null); }}>Reset filters</button>
+      </section>
+      <p className="hint">Selected month totals ({book}). Filters do not change these totals.</p>
+
       <section className="totals">
         <div><span>Income</span><Money cents={income} animate className="income" /></div>
         <div><span>Expense</span><Money cents={expense} animate className="expense" /></div>
         <div><span>Net</span><Money cents={net} animate /></div>
       </section>
 
-      {rows.length === 0 && <p className="empty">Nothing recorded this month. Press + to add an expense or income.</p>}
+      <p className="hint" role="status">{rows.length} matches ({allHistory ? 'all history' : 'selected month'}): income {formatPeso(matching.income)}, expense {formatPeso(matching.expense)}, net {formatPeso(matching.net)}.</p>
+      {rows.length === 0 && <p className="empty">No matching transactions. Adjust the search or filters, or press + to add one.</p>}
 
       {rows.length > 0 && (
         <div className="list-tools">

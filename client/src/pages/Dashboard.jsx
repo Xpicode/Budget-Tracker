@@ -4,11 +4,12 @@ import {
 } from 'recharts';
 import { db } from '../db';
 import { formatPeso } from '../money';
-import { balances, totals, spendingByCategory, monthlyExpenses, inBook, accountFits } from '../reports';
+import { balances, totals, spendingByCategory, monthlyExpenses, inBook, accountFits, budgetProgress } from '../reports';
 import { useSetting } from '../settings';
 import { today, shiftMonth, period, currentMonth, formatMonth } from '../dates';
 import Money from '../components/Money';
 import BookFilter from '../components/BookFilter';
+import BudgetAlerts from '../components/BudgetAlerts';
 import { useBook } from '../settings';
 import { categoryColors } from '../colors';
 
@@ -61,11 +62,14 @@ export default function Dashboard() {
   const accounts = useLiveQuery(() => db.accounts.filter((a) => !a.deleted_at && !a.archived).toArray()) ?? [];
   const categories = useLiveQuery(() => db.categories.toArray()) ?? [];
   const txns = useLiveQuery(() => db.transactions.filter((t) => !t.deleted_at).toArray()) ?? [];
+  const budgets = useLiveQuery(() => db.budgets.filter((b) => !b.deleted_at && b.month === month).toArray(), [month]) ?? [];
   const book = useBook();
   // Totals and charts follow the book filter. The balance card adds up this book's accounts,
   // each with every row in it (money in an account is the same money whichever book a row is in).
   const bookTxns = txns.filter((t) => inBook(t, book));
   const monthTxns = bookTxns.filter((t) => t.txn_date >= from && t.txn_date < to);
+  // Budgets apply across all books, independently of the dashboard's filter.
+  const progress = budgetProgress(budgets, txns.filter((t) => t.txn_date >= from && t.txn_date < to));
 
   const balance = balances(accounts, txns);
   const total = accounts.filter((a) => accountFits(a, book)).reduce((s, a) => s + balance[a.id], 0);
@@ -111,6 +115,8 @@ export default function Dashboard() {
           <div><span>{{ all: 'All accounts', personal: 'Personal accounts', business: 'Business accounts' }[book]}</span><Money cents={total} animate /></div>
         </div>
       </section>
+
+      <BudgetAlerts progress={progress} categories={categories} month={month} />
 
       <section className="card chart">
         <h2>Where it went</h2>

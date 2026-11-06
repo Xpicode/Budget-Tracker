@@ -1,7 +1,21 @@
+import { toCents } from './money';
+
 // Pure functions over plain arrays, so tests can run them without IndexedDB.
 // Rows with deleted_at are ignored here too, so no caller can forget golden rule 3.
 
 const live = (txns) => txns.filter((t) => !t.deleted_at);
+
+export function filterTransactions(txns, { search = '', category_id = '', account_id = '', type = '' } = {}, categories = []) {
+  const text = search.trim().toLowerCase();
+  const amount = text ? toCents(text) : null;
+  const names = Object.fromEntries(categories.map((c) => [c.id, c.name.toLowerCase()]));
+  return live(txns).filter((t) =>
+    (!category_id || t.category_id === category_id) &&
+    (!account_id || t.account_id === account_id || t.to_account_id === account_id) &&
+    (!type || t.type === type) &&
+    (!text || (t.note ?? '').toLowerCase().includes(text) || (names[t.category_id] ?? '').includes(text) || (amount !== null && t.amount_cents === amount)),
+  );
+}
 
 // The All / Personal / Business filter. Rows without a book (made before books existed) are personal.
 export const inBook = (t, book) => book === 'all' || (t.book ?? 'personal') === book;

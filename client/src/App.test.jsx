@@ -49,6 +49,20 @@ test('a saved login permits local access without a network request', () => {
   expect(renderGate('/transactions')).toContain('Private budget content');
 });
 
+test('email reset links show the new-password form even on a signed-in device', () => {
+  useLiveQuery.mockReturnValue({ id: 'owner' });
+  vi.stubGlobal('location', { hash: '#token=' + 'a'.repeat(64) });
+  try {
+    const html = renderGate('/reset-password');
+    expect(html).toContain('Reset password');
+    expect(html).toContain('name="confirmation"');
+    expect(html).not.toContain('Private budget content');
+    expect(html).not.toContain('name="recovery_code"');
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
 test('the local account query distinguishes signed-out from loading', async () => {
   useLiveQuery.mockReturnValue(undefined);
   renderGate();

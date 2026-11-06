@@ -2,7 +2,7 @@ import { test, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app.js';
 import { pool } from '../src/db.js';
-import { resetPassword, generateRecoveryCode } from '../src/reset-password.js';
+import { resetPassword } from '../src/reset-password.js';
 
 const email = `auth-${Date.now()}@test.com`;
 const password = 'password123';
@@ -100,22 +100,7 @@ test('Settings password changes require authentication and the current password'
   await request(app).post('/api/auth/login').send({ email, password: next }).expect(200);
 });
 
-test('recovery codes are hashed, rotated, bound to email, and consumed exactly once', async () => {
-  const old = await generateRecoveryCode(email);
-  const code = await generateRecoveryCode(email.toUpperCase());
-  expect(code).toMatch(/^[a-f0-9]{64}$/);
-  const stored = await pool.query('select recovery_code_hash from users where email = $1', [email]);
-  expect(stored.rows[0].recovery_code_hash === code).toBe(false);
-  const reset = (address, recovery_code, password = 'recovered-password123') => request(app).post('/api/auth/reset-password').send({ email: address, recovery_code, password });
-  const invalid = await reset(email, old).expect(400);
-  const missing = await reset('missing@test.com', code).expect(400);
-  expect(invalid.body).toEqual(missing.body);
-  await reset(email, code, 'short').expect(400);
-  const results = await Promise.all([reset(email, code), reset(email, code)]);
-  expect(results.map((r) => r.status).sort()).toEqual([200, 400]);
-  await reset(email, code).expect(400);
-  await request(app).post('/api/auth/login').send({ email, password: 'settings-password123' }).expect(401);
-  await request(app).post('/api/auth/login').send({ email, password: 'recovered-password123' }).expect(200);
-  const after = await pool.query('select recovery_code_hash from users where email = $1', [email]);
-  expect(after.rows[0].recovery_code_hash).toBeNull();
+test('the removed recovery-code endpoint cannot reset passwords', async () => {
+  await request(app).post('/api/auth/reset-password').send({ email, recovery_code: 'a'.repeat(64), password: 'unwanted-password' }).expect(404);
+  await request(app).post('/api/auth/login').send({ email, password: 'settings-password123' }).expect(200);
 });

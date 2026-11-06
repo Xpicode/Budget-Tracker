@@ -68,13 +68,14 @@ function Shell() {
 }
 
 export function LoginGate({ children }) {
+  const { pathname } = useLocation();
   // null means signed out; undefined means IndexedDB has not finished loading.
   const user = useLiveQuery(async () => (await db.meta.get('user'))?.value ?? null);
   if (user === undefined) {
     return <main className="login-screen"><p role="status">Loading your account...</p></main>;
   }
   // A saved login allows previously signed-in devices to keep working offline.
-  if (!user) {
+  if (!user || pathname === '/reset-password') {
     return (
       <main className="login-screen">
         <div className="login-panel">
@@ -82,7 +83,7 @@ export function LoginGate({ children }) {
             <h1>Budget Tracker</h1>
             <p>Log in to access your budget.</p>
           </header>
-          <Account />
+          <Account key={pathname === '/reset-password' ? 'reset' : 'login'} emailReset={pathname === '/reset-password'} />
         </div>
       </main>
     );
